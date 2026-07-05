@@ -6,7 +6,7 @@ Machine Learning app to estimate self-reported diabetes/prediabetes risk using B
 
 ## Current Status
 
-Project setup and data governance are complete. The next phase is data understanding and exploratory data analysis.
+Project setup and data governance are complete. The next phase is ready for implementation: data understanding and exploratory data analysis.
 
 ## Project Structure
 

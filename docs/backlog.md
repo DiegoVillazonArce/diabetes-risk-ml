@@ -55,9 +55,37 @@ Intentionally deferred from E1:
 
 | ID | User Story | Priority | Status | Acceptance Criteria |
 |---|---|---:|---|---|
-| US-0201 | As a reviewer, I want to see the dataset schema validated so that I can trust the inputs used for modeling. | P0 | To Do | Feature names, target, data types, ranges, and unexpected values are reported. |
-| US-0202 | As a reviewer, I want class balance and duplicate behavior documented so that evaluation choices are justified. | P0 | To Do | Target distribution, missing values, duplicate count, and duplicate policy are documented. |
-| US-0203 | As a non-technical viewer, I want the EDA to explain why imbalance matters so that model metrics are understandable. | P1 | To Do | EDA narrative explains class imbalance and why accuracy is insufficient. |
+| US-0201 | As a reviewer, I want to see the dataset schema validated so that I can trust the inputs used for modeling. | P0 | Ready | Feature names, target, data types, ranges, and unexpected values are reported. |
+| US-0202 | As a reviewer, I want class balance and duplicate behavior documented so that evaluation choices are justified. | P0 | Ready | Target distribution, missing values, duplicate count, and duplicate policy are documented. |
+| US-0203 | As a non-technical viewer, I want the EDA to explain why imbalance matters so that model metrics are understandable. | P1 | Ready | EDA narrative explains class imbalance and why accuracy is insufficient. |
+
+### Candidate Tasks for E2
+
+Implementation should focus on a reproducible EDA artifact, not on modeling or data preparation code yet.
+
+- [ ] Validate the environment in a fresh virtual environment with `pip install -r requirements.txt`; if a pin fails, adjust that pin explicitly and document the reason.
+- [ ] Create the first EDA notebook under `notebooks/`, using a clear name such as `01_data_understanding_eda.ipynb`.
+- [ ] Load the dataset from `data/raw/diabetes_binary_health_indicators_BRFSS2015.csv` and fail clearly if the file is missing.
+- [ ] Verify dataset shape, column order, target column, and row count against the documented expectations.
+- [ ] Classify features into initial modeling groups: binary indicators, ordinal indicators, and numeric indicators.
+- [ ] Report data types and feature ranges for each feature group.
+- [ ] Check missing values and unexpected values.
+- [ ] Count duplicate rows and record an initial duplicate interpretation without dropping rows in E2 unless there is a documented reason.
+- [ ] Analyze target distribution, positive class prevalence, and base-rate implications for baseline evaluation.
+- [ ] Add basic descriptive tables or plots for high-signal variables such as `BMI`, `GenHlth`, `Age`, `Income`, and `HighBP`.
+- [ ] Add a lightweight Spearman correlation review to identify obvious feature relationships or redundancy, without removing features in E2.
+- [ ] Analyze memory usage and record downcasting recommendations for E3, without permanently changing dtypes in E2.
+- [ ] Explain why class imbalance makes accuracy insufficient as the main evaluation metric.
+- [ ] Capture EDA findings and convert any cleaning, validation, or split implications into candidate E3 tasks.
+
+### Definition of Done for E2
+
+- The EDA notebook can run top-to-bottom from the documented local raw data path.
+- The notebook reports schema, missing values, duplicates, feature ranges, and target imbalance.
+- The EDA records initial feature groups, positive class prevalence, correlation observations, and memory optimization recommendations.
+- The EDA includes a short written interpretation suitable for a portfolio reviewer.
+- No model training, balancing, train/test splitting, or feature engineering is introduced in E2.
+- Follow-up tasks for E3 are updated based on the findings.
 
 ## Epic E3: Reproducible Data Preparation
 

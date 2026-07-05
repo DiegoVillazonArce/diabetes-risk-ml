@@ -14,6 +14,13 @@ Near-term work is planned in detail. Later phases remain intentionally broader u
 - The roadmap is updated at phase boundaries, not after every small task.
 - Technical decisions that affect reproducibility, evaluation, or product behavior are recorded in the decision log.
 
+## Roadmap Status Values
+
+- **Done:** completed and validated.
+- **Ready:** next phase has a clear iteration goal, tasks, and acceptance criteria.
+- **Planned:** phase is part of the roadmap but not yet refined for implementation.
+- **Future:** post-MVP or later improvement.
+
 ## MVP Boundary
 
 The MVP should prove the complete ML product lifecycle without trying to include every advanced feature from the long-term project vision.
@@ -40,7 +47,7 @@ Advanced post-MVP features include calibration depth, SHAP polish, model scenari
 |---|---|---|---|---|
 | P0 | Planning and Analysis | Define scope, workflow, documentation, and initial ML assumptions. | Yes | Done |
 | P1 | Project Setup and Data Governance | Create repo structure, dependency strategy, data acquisition instructions, and data handling policy. | Yes | Done |
-| P2 | Data Understanding and EDA | Analyze schema, target distribution, missing values, duplicates, and feature ranges. | Yes | Planned |
+| P2 | Data Understanding and EDA | Analyze schema, target distribution, missing values, duplicates, and feature ranges. | Yes | Ready |
 | P3 | Data Preparation and Splits | Build reproducible cleaning, validation, and train/calibration/test split logic. | Yes | Planned |
 | P4 | Baseline Modeling | Train Dummy and simple interpretable models to establish reference performance. | Yes | Planned |
 | P5 | Model Comparison and Selection | Compare candidate models using appropriate imbalanced classification metrics. | Yes | Planned |

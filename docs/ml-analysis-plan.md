@@ -79,11 +79,17 @@ The EDA phase should report:
 
 - Shape and schema.
 - Target distribution.
+- Positive class prevalence and base-rate implications.
 - Missing values.
 - Duplicate rows.
 - Feature ranges and unexpected values.
-- Class balance before and after any cleaning decision.
+- Confirmation of the documented feature groups (see Initial Feature Set) against observed dtypes and values.
+- Lightweight Spearman correlation observations to identify obvious feature relationships or redundancy.
+- Memory usage and downcasting recommendations for later data preparation.
+- Expected class balance impact of any proposed cleaning decision, without applying cleaning during EDA.
 - Potential limitations from self-reported survey data.
+
+EDA should generate evidence for later preparation and modeling decisions, but it should not perform permanent dtype conversion, feature removal, train/test splitting, balancing, or model training.
 
 ## Split Strategy
 

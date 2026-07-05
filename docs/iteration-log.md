@@ -93,3 +93,41 @@ This file tracks short planning and development iterations. It is intentionally 
 - Create the first virtual environment and run `pip install -r requirements.txt` to validate the pins; adjust any pin that fails to resolve.
 - Start P2: Data Understanding and EDA with the first notebook under `notebooks/`.
 - Keep D-013 in view before the first public deployment.
+
+## Iteration 2: Data Understanding and EDA
+
+**Date:** 2026-07-06 (planned)
+
+**Status:** Planned
+
+**Goal:** Validate the dataset structure and produce the first reproducible EDA artifact so that data preparation decisions in P3 are based on observed evidence.
+
+### Planned
+
+- Validate the pinned environment in a fresh virtual environment before starting EDA.
+- Create the first notebook under `notebooks/` for data understanding and exploratory analysis.
+- Load the raw CSV from the documented `data/raw/` path.
+- Verify shape, columns, target, row count, data types, and feature ranges.
+- Classify columns into initial binary, ordinal, and numeric feature groups for later pipeline design.
+- Report missing values, unexpected values, duplicate rows, and target distribution.
+- Document the positive class prevalence and its implications for baseline evaluation.
+- Add basic descriptive summaries or plots for important features.
+- Add a lightweight Spearman correlation review to identify obvious feature relationships without selecting or dropping features.
+- Analyze memory usage and record downcasting recommendations for P3 without changing the raw data contract.
+- Explain the class imbalance and why accuracy alone is not an adequate evaluation metric.
+- Record P3 follow-up tasks for validation, cleaning, duplicate handling, and split logic.
+
+### Scope Guardrails
+
+- Do not train models in this iteration.
+- Do not create train/test splits yet.
+- Do not apply balancing, SMOTE, calibration, SHAP, or Streamlit work.
+- Do not select or remove features based on correlation in this iteration.
+- Do not drop duplicate rows in E2 unless the reason is explicitly documented and carried into P3.
+
+### Expected Deliverables
+
+- A committed-ready EDA notebook under `notebooks/`.
+- Updated backlog status for E2 stories.
+- Updated follow-up tasks for E3 based on EDA findings.
+- Any dependency pin adjustment documented if environment validation requires it.
