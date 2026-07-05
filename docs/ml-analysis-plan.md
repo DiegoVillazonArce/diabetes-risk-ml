@@ -8,7 +8,7 @@ The model output should be communicated as an educational risk estimate, not as 
 
 ## Current Local Dataset State
 
-A local file named `dataset.csv` is currently present in the repository root for initial inspection. During project setup, the standard local path will be:
+The raw dataset was moved to its standard local path during project setup (P1) and is git-ignored:
 
 `data/raw/diabetes_binary_health_indicators_BRFSS2015.csv`
 
@@ -57,7 +57,7 @@ The initial MVP dependency strategy is:
 - Avoid generating the main requirements file from a noisy global environment.
 - Revisit a lockfile-based workflow, such as `uv`, if dependency reproducibility becomes a larger concern before deployment.
 
-The dependency strategy should be recorded in the decision log once the first environment is created.
+This strategy is recorded in the decision log as D-012: Python 3.12 with a hand-curated pinned `requirements.txt`, created during project setup (P1).
 
 ## Initial Feature Set
 

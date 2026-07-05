@@ -67,7 +67,7 @@ The MVP is successful when:
 ## Constraints
 
 - The app must remain lightweight enough for Streamlit Community Cloud.
-- Raw data and large generated artifacts should not be committed until the data policy is finalized.
+- Raw data remains out of git; large generated artifacts should be committed only when explicitly selected for deployment or documentation.
 - The repository-facing documentation should be concise and written in English.
 - The original Spanish blueprint remains a private internal planning reference, not the public project documentation.
 

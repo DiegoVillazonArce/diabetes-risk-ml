@@ -6,7 +6,32 @@ Machine Learning app to estimate self-reported diabetes/prediabetes risk using B
 
 ## Current Status
 
-Planning and analysis is complete. The next phase is project setup and data governance.
+Project setup and data governance are complete. The next phase is data understanding and exploratory data analysis.
+
+## Project Structure
+
+```
+src/               # Reusable Python modules (data loading, validation, training)
+notebooks/         # EDA and analysis notebooks
+app/               # Streamlit application code
+tests/             # Pytest suite
+data/
+  raw/             # Local raw dataset (git-ignored)
+  processed/       # Generated intermediate datasets (git-ignored)
+models/            # Serialized model artifacts (git-ignored)
+docs/              # Planning and analysis documentation
+```
+
+## Environment Setup
+
+The supported Python version is **3.12**. Dependencies are pinned in `requirements.txt`.
+
+```
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+source .venv/bin/activate     # macOS / Linux
+pip install -r requirements.txt
+```
 
 ## Dataset
 
@@ -18,9 +43,11 @@ Selected file:
 
 License: [CC0: Public Domain](https://creativecommons.org/publicdomain/zero/1.0/)
 
-The raw CSV is not committed to the repository. To reproduce the training pipeline, download the selected file from Kaggle and place it at:
+The raw CSV is not committed to the repository. It is only needed to reproduce the EDA and the offline training pipeline; Streamlit app users do not need it because the app serves serialized model artifacts trained offline. To reproduce EDA or training, download the selected file from Kaggle and place it at:
 
 `data/raw/diabetes_binary_health_indicators_BRFSS2015.csv`
+
+See [data/README.md](data/README.md) for the full data acquisition instructions and data handling policy.
 
 ## Planning Documentation
 

@@ -35,22 +35,21 @@ Epics are ordered by MVP delivery order, not by numeric ID: Epic E7 (MVP Documen
 
 | ID | User Story | Priority | Status | Acceptance Criteria |
 |---|---|---:|---|---|
-| US-0101 | As the developer, I want a clean project folder structure so that source code, notebooks, app files, tests, data, and artifacts are separated. | P0 | Ready | Initial folders exist with placeholders where needed and the README points to the structure. |
-| US-0102 | As the developer, I want a clear raw data policy so that raw data handling is intentional and reproducible. | P0 | Ready | Raw CSV files are ignored, the CC0 dataset source is documented, and data acquisition instructions are planned. |
+| US-0101 | As the developer, I want a clean project folder structure so that source code, notebooks, app files, tests, data, and artifacts are separated. | P0 | Done | Initial folders exist with placeholders where needed and the README points to the structure. |
+| US-0102 | As the developer, I want a clear raw data policy so that raw data handling is intentional and reproducible. | P0 | Done | Raw CSV files are ignored, the CC0 dataset source is documented, and data acquisition instructions are planned. |
 | US-0103 | As the developer, I want the target formulation resolved before modeling so that all downstream work is consistent. | P0 | Done | Decision made to use the official binary CSV with `Diabetes_binary` as target. |
-| US-0104 | As a reviewer, I want dependency management to be explicit so that the project can be reproduced. | P0 | Ready | Python version is selected and a pinned dependency file strategy is documented. |
-| US-0105 | As a reviewer, I want clear data acquisition instructions so that I can reproduce the project without the raw CSV being committed. | P0 | Ready | README or data documentation identifies the Kaggle dataset URL, required file, CC0 license, expected local path, and credential caveats. |
-| US-0106 | As the developer, I want a testing strategy before implementation so that the MVP includes meaningful checks instead of vague "tests". | P1 | Ready | Backlog identifies initial pytest targets for data validation, splits, pipeline behavior, and artifact loading. |
+| US-0104 | As a reviewer, I want dependency management to be explicit so that the project can be reproduced. | P0 | Done | Python version is selected and a pinned dependency file strategy is documented. |
+| US-0105 | As a reviewer, I want clear data acquisition instructions so that I can reproduce the project without the raw CSV being committed. | P0 | Done | README or data documentation identifies the Kaggle dataset URL, required file, CC0 license, expected local path, and credential caveats. |
+| US-0106 | As the developer, I want a testing strategy before implementation so that the MVP includes meaningful checks instead of vague "tests". | P1 | Done | Backlog identifies initial pytest targets for data validation, splits, pipeline behavior, and artifact loading. |
 
 ### Candidate Tasks for E1
 
-- Create `src/`, `notebooks/`, `app/`, `tests/`, `data/`, and `models/` structure.
-- Document the local-only raw data policy, exact Kaggle URL, CC0 license, and manual download path.
-- Move local raw data into the planned data location.
-- Add placeholders only where useful for empty directories.
-- Draft dependency strategy: pinned `requirements.txt` first, optional `uv` lockfile later.
-- Draft data acquisition instructions for manual Kaggle download.
-- Create initial pytest plan and test file placeholders when the first code modules exist.
+All E1 setup tasks were completed in Iteration 1: the folder structure exists with lightweight placeholders, the raw dataset was moved to `data/raw/` and remains git-ignored, `data/README.md` documents acquisition and the data handling policy, and Python 3.12 with a pinned `requirements.txt` resolves the dependency strategy (D-012).
+
+Intentionally deferred from E1:
+
+- Test file placeholders will be created together with the first code modules in Epic E3, as planned; the pytest targets themselves are documented in the ML analysis plan.
+- Validating the pinned environment (`pip install -r requirements.txt` in a fresh virtual environment) is the first task of the next iteration, before EDA work starts.
 
 ## Epic E2: Data Understanding and EDA
 
