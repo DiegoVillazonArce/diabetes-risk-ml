@@ -157,3 +157,19 @@ This file tracks short planning and development iterations. It is intentionally 
 - Updated backlog status for E2 stories. -- Done: US-0201, US-0202, US-0203 marked Done in `docs/backlog.md`.
 - Updated follow-up tasks for E3 based on EDA findings. -- Done: added a "Candidate Tasks for E3" section in `docs/backlog.md`.
 - Any dependency pin adjustment documented if environment validation requires it. -- Not needed: all pins resolved cleanly.
+
+## Next Iteration Planning: P3 Data Preparation and Splitting
+
+**Date:** 2026-07-06
+
+**Status:** Planned
+
+**Goal:** Convert the P2 findings into reusable data loading, validation, downcasting, and stratified split logic without introducing modeling work.
+
+### Planning Notes
+
+- D-014 is resolved: exact duplicate rows will be kept for MVP data preparation.
+- The accepted duplicate policy keeps the full 253,680-row dataset and the observed ~13.9% positive prevalence, which the stratified 70/10/20 train/calibration/test split must preserve.
+- P3 should define the data contract in reusable code, validate the raw schema and values, apply safe lossless `uint8` downcasting, and add focused pytest coverage.
+- P3 should decide whether split outputs belong in `data/processed/` now or whether the split function should return in-memory data for the next modeling phase.
+- P3 should not add balancing, SMOTE, model training, feature engineering, app work, calibration, or explainability.

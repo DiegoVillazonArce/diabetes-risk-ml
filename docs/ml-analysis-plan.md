@@ -30,7 +30,7 @@ Current inspection:
 
 This confirms that the current local file matches the original imbalanced binary BRFSS dataset selected for the MVP.
 
-The P2 EDA (`notebooks/01_data_understanding_eda.ipynb`) additionally found 24,206 exact duplicate rows (~9.5%), skewed heavily toward the negative class (~1% positive among duplicates vs. ~13.9% overall). No rows were dropped during EDA; the duplicate-row policy is tracked as decision D-014 (Pending) in `docs/decisions.md`, since it changes which prevalence figure below the P3 splits must preserve.
+The P2 EDA (`notebooks/01_data_understanding_eda.ipynb`) additionally found 24,206 exact duplicate rows (~9.5%), skewed heavily toward the negative class (~1% positive among duplicates vs. ~13.9% overall). No rows were dropped during EDA. Decision D-014 accepts keeping exact duplicate rows for MVP data preparation, so P3 splits must preserve the observed ~13.9% positive prevalence.
 
 ## Target Definition
 
@@ -39,7 +39,9 @@ The project uses the original binary target:
 - `Diabetes_binary = 0`: no self-reported diabetes or prediabetes.
 - `Diabetes_binary = 1`: self-reported prediabetes or diabetes.
 
-The target is not derived from the multiclass `Diabetes_012` file. The original imbalance is preserved and must also be preserved in the test set.
+The target is not derived from the multiclass `Diabetes_012` file. The project remains an imbalanced binary classification problem, and the selected analysis population's class distribution must be preserved in evaluation splits.
+
+Because D-014 keeps exact duplicate rows for MVP data preparation, the selected analysis population remains the full 253,680-row dataset and the selected prevalence remains approximately 13.9% positive.
 
 ## Data Handling Policy
 
@@ -93,6 +95,14 @@ The EDA phase should report:
 
 EDA should generate evidence for later preparation and modeling decisions, but it should not perform permanent dtype conversion, feature removal, train/test splitting, balancing, or model training.
 
+## Preparation and Splitting Expectations
+
+P3 should turn the EDA findings into reusable loading, validation, downcasting, and split logic. D-014 has resolved that exact duplicate rows are kept for MVP data preparation.
+
+P3 should validate the raw schema, missing values, integer-like values, target values, and feature ranges; safely downcast validated values to `uint8`; and create reproducible stratified 70/10/20 train/calibration/test splits that preserve the observed ~13.9% positive prevalence in every split.
+
+P3 should also decide whether split outputs are written under `data/processed/` or returned in memory for now. It should not introduce balancing, SMOTE, model training, feature engineering, calibration, explainability, or app work.
+
 ## Split Strategy
 
 Use stratified splits:
@@ -101,9 +111,9 @@ Use stratified splits:
 - Calibration set: 10%.
 - Test set: 20%.
 
-The test set must preserve the original target distribution. Any class balancing or sampling technique must be applied only inside the training process.
+Train, calibration, and test sets must each preserve the selected target distribution. Any class balancing or sampling technique must be applied only inside the training process.
 
-Note: "original target distribution" means ~13.9% positive if duplicate rows are kept, or ~15.3% if they are dropped per decision D-014 -- whichever the P3 duplicate-row decision selects is the distribution every split must preserve.
+Note: D-014 keeps duplicate rows for MVP data preparation, so the selected target distribution is the observed ~13.9% positive prevalence from the full 253,680-row dataset. Dropping duplicates would have shifted positive prevalence to ~15.3%, but that is not the default P3 path.
 
 ## Baseline and Candidate Models
 
@@ -220,7 +230,7 @@ The MVP should include focused pytest coverage for high-risk project behavior:
 
 - Data schema validation: required columns, no unexpected target values, and expected feature ranges.
 - Data quality checks: missing values, duplicate handling, and class distribution reporting.
-- Split checks: stratified train/calibration/test splits preserve the original target distribution within a small tolerance.
+- Split checks: stratified train/calibration/test splits preserve the selected target distribution within a small tolerance.
 - Pipeline checks: preprocessing and model pipeline can fit on a small sample and produce valid probabilities.
 - Artifact checks: serialized model can be loaded locally and returns probabilities in `[0, 1]`.
 
