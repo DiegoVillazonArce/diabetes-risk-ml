@@ -30,6 +30,8 @@ Current inspection:
 
 This confirms that the current local file matches the original imbalanced binary BRFSS dataset selected for the MVP.
 
+The P2 EDA (`notebooks/01_data_understanding_eda.ipynb`) additionally found 24,206 exact duplicate rows (~9.5%), skewed heavily toward the negative class (~1% positive among duplicates vs. ~13.9% overall). No rows were dropped during EDA; the duplicate-row policy is tracked as decision D-014 (Pending) in `docs/decisions.md`, since it changes which prevalence figure below the P3 splits must preserve.
+
 ## Target Definition
 
 The project uses the original binary target:
@@ -100,6 +102,8 @@ Use stratified splits:
 - Test set: 20%.
 
 The test set must preserve the original target distribution. Any class balancing or sampling technique must be applied only inside the training process.
+
+Note: "original target distribution" means ~13.9% positive if duplicate rows are kept, or ~15.3% if they are dropped per decision D-014 -- whichever the P3 duplicate-row decision selects is the distribution every split must preserve.
 
 ## Baseline and Candidate Models
 
