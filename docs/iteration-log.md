@@ -183,3 +183,22 @@ This file tracks short planning and development iterations. It is intentionally 
 - Refine P4 baseline modeling tasks before implementation.
 - Use the in-memory P3 split functions from `src/data.py` for baseline training.
 - Keep D-013 in view before deployment work begins.
+
+## Next Iteration Planning: P4 Baseline Modeling
+
+**Date:** 2026-07-07
+
+**Status:** Planned
+
+**Goal:** Establish a first verifiable training/evaluation baseline (`DummyClassifier` and `LogisticRegression`) on top of the P3 data preparation module, without expanding into tree-based candidates or formal model comparison yet.
+
+### Planning Notes
+
+- A backlog micro-refinement split the former Epic E4 (Baseline and Candidate Modeling) into Epic E4 (Baseline Modeling, P4) and a new Epic E8 (Model Comparison and Selection, P5): E4 now keeps only `DummyClassifier` and `LogisticRegression`; E8 owns the tree-based candidate, formal comparison, model selection, and the serialization policy story (moved from the former US-0403 to US-0803, since `US-05xx` was already used by Epic E5).
+- P4 should implement reusable modeling code, likely `src/modeling.py`, so baseline training and evaluation are testable outside notebooks.
+- P4 must use `src.data.prepare_data()` as the exclusive data entry point, train only on the training split, and report baseline metrics on train and test only.
+- The calibration split should remain unused in P4 so it stays reserved for later probability calibration work.
+- P4 metrics: ROC-AUC, PR-AUC, recall, precision, F1, confusion matrix, and accuracy as a secondary metric only, per `docs/ml-analysis-plan.md`.
+- P4 should not serialize a model artifact, train a tree-based candidate, or select a primary model; those steps belong to P5 (Epic E8).
+- P4 should not add SHAP, deep calibration, Streamlit/app work, fairness analysis, or advanced threshold tuning.
+- Add lightweight pytest coverage: the pipeline fits on a small sample, `predict_proba` returns probabilities in `[0, 1]`, metrics compute without errors, training never touches calibration/test rows, and P4 evaluation does not consume calibration rows.

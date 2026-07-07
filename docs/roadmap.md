@@ -49,7 +49,7 @@ Advanced post-MVP features include calibration depth, SHAP polish, model scenari
 | P1 | Project Setup and Data Governance | Create repo structure, dependency strategy, data acquisition instructions, and data handling policy. | Yes | Done |
 | P2 | Data Understanding and EDA | Analyze schema, target distribution, missing values, duplicates, and feature ranges. | Yes | Done |
 | P3 | Data Preparation and Splits | Build reproducible cleaning, validation, and train/calibration/test split logic. | Yes | Done |
-| P4 | Baseline Modeling | Train Dummy and simple interpretable models to establish reference performance. | Yes | Planned |
+| P4 | Baseline Modeling | Train Dummy and simple interpretable models to establish reference performance. | Yes | Ready |
 | P5 | Model Comparison and Selection | Compare candidate models using appropriate imbalanced classification metrics. | Yes | Planned |
 | P6 | Streamlit MVP | Serve a trained model for individual prediction with clear disclaimers. | Yes | Planned |
 | P7 | MVP Documentation and Deployment | Prepare README, run instructions, tests, artifact notes, and first public deployment. | Yes | Planned |

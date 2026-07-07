@@ -115,6 +115,8 @@ Train, calibration, and test sets must each preserve the selected target distrib
 
 Note: D-014 keeps duplicate rows for MVP data preparation, so the selected target distribution is the observed ~13.9% positive prevalence from the full 253,680-row dataset. Dropping duplicates would have shifted positive prevalence to ~15.3%, but that is not the default P3 path.
 
+P4 baseline modeling should fit models on the training split and report baseline metrics on train and test only. The calibration split should remain unused in P4 so it is still clean for later probability calibration work.
+
 ## Baseline and Candidate Models
 
 MVP candidates:
@@ -122,6 +124,10 @@ MVP candidates:
 - `DummyClassifier`.
 - `LogisticRegression`.
 - One tree-based model, such as `RandomForestClassifier` or `HistGradientBoostingClassifier`.
+
+P4 establishes the Dummy and Logistic Regression baseline only; P5 extends to the tree-based candidate and formal model comparison/selection (see Epic E8 in `docs/backlog.md`).
+
+P4 modeling code should live in a reusable source module, likely `src/modeling.py`; notebooks may summarize results, but they should not be the only implementation path.
 
 Post-MVP candidates:
 
