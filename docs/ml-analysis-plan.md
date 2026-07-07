@@ -101,7 +101,7 @@ P3 should turn the EDA findings into reusable loading, validation, downcasting, 
 
 P3 should validate the raw schema, missing values, integer-like values, target values, and feature ranges; safely downcast validated values to `uint8`; and create reproducible stratified 70/10/20 train/calibration/test splits that preserve the observed ~13.9% positive prevalence in every split.
 
-P3 should also decide whether split outputs are written under `data/processed/` or returned in memory for now. It should not introduce balancing, SMOTE, model training, feature engineering, calibration, explainability, or app work.
+Per D-015, P3 returns split outputs in memory and does not write processed split files under `data/processed/` for now. It should not introduce balancing, SMOTE, model training, feature engineering, calibration, explainability, or app work.
 
 ## Split Strategy
 

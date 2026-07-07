@@ -158,18 +158,28 @@ This file tracks short planning and development iterations. It is intentionally 
 - Updated follow-up tasks for E3 based on EDA findings. -- Done: added a "Candidate Tasks for E3" section in `docs/backlog.md`.
 - Any dependency pin adjustment documented if environment validation requires it. -- Not needed: all pins resolved cleanly.
 
-## Next Iteration Planning: P3 Data Preparation and Splitting
+## Iteration 3: Data Preparation and Splitting
 
-**Date:** 2026-07-06
+**Date:** 2026-07-06 to 2026-07-07
 
-**Status:** Planned
+**Status:** Completed
 
 **Goal:** Convert the P2 findings into reusable data loading, validation, downcasting, and stratified split logic without introducing modeling work.
 
-### Planning Notes
+### Completed
 
 - D-014 is resolved: exact duplicate rows will be kept for MVP data preparation.
 - The accepted duplicate policy keeps the full 253,680-row dataset and the observed ~13.9% positive prevalence, which the stratified 70/10/20 train/calibration/test split must preserve.
-- P3 should define the data contract in reusable code, validate the raw schema and values, apply safe lossless `uint8` downcasting, and add focused pytest coverage.
-- P3 should decide whether split outputs belong in `data/processed/` now or whether the split function should return in-memory data for the next modeling phase.
-- P3 should not add balancing, SMOTE, model training, feature engineering, app work, calibration, or explainability.
+- D-015 is resolved: P3 split outputs are returned in memory for now, and `data/processed/` remains empty until a downstream consumer needs persisted files.
+- `src/data.py` implements the P3 data contract, raw loading, validation, safe `uint8` downcasting, dataset summary metadata, and reproducible in-memory stratified splits.
+- `tests/test_data.py` covers loading, schema/value validation, duplicate handling, downcasting, split sizes, split reproducibility, and prevalence preservation.
+- P3 remains scoped to data preparation and splitting: no balancing, SMOTE, model training, feature engineering, app work, calibration, or explainability was added.
+- Verified `python -m pytest tests/test_data.py -v -p no:cacheprovider --basetemp .pytest_tmp_precommit`: 27 passed, including integration checks against the local raw CSV.
+- Verified `python -m compileall src tests`: OK.
+- Marked US-0301, US-0302, and US-0303 Done; set roadmap P3 to Done; updated the README current status to point to P4.
+
+### Follow-Up
+
+- Refine P4 baseline modeling tasks before implementation.
+- Use the in-memory P3 split functions from `src/data.py` for baseline training.
+- Keep D-013 in view before deployment work begins.

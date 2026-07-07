@@ -93,25 +93,27 @@ All E2 acceptance criteria are satisfied; see `notebooks/01_data_understanding_e
 
 | ID | User Story | Priority | Status | Acceptance Criteria |
 |---|---|---:|---|---|
-| US-0301 | As the developer, I want reusable data loading and validation code so that notebooks and training scripts share the same logic. | P0 | Ready | Data module loads the selected dataset and validates schema/ranges. |
-| US-0302 | As a reviewer, I want stratified train/calibration/test splits so that model evaluation is trustworthy. | P0 | Ready | Split code is reproducible, stratified, and preserves the selected positive prevalence in each split. |
-| US-0303 | As the developer, I want tests for data preparation so that schema, ranges, downcasting, and splits do not silently regress. | P1 | Ready | pytest tests cover required columns, expected target values, feature ranges, downcasting, and split class proportions. |
+| US-0301 | As the developer, I want reusable data loading and validation code so that notebooks and training scripts share the same logic. | P0 | Done | Data module loads the selected dataset and validates schema/ranges. |
+| US-0302 | As a reviewer, I want stratified train/calibration/test splits so that model evaluation is trustworthy. | P0 | Done | Split code is reproducible, stratified, and preserves the selected positive prevalence in each split. |
+| US-0303 | As the developer, I want tests for data preparation so that schema, ranges, downcasting, and splits do not silently regress. | P1 | Done | pytest tests cover required columns, expected target values, feature ranges, downcasting, and split class proportions. |
 
 ### Candidate Tasks for E3
 
 Sourced from the P2 EDA findings in `notebooks/01_data_understanding_eda.ipynb` (see Iteration 2 in `docs/iteration-log.md`):
 
 - [x] Resolve D-014 before creating splits: exact duplicate rows will be kept for MVP data preparation. P2 found 24,206 exact duplicate rows (~9.5% of the dataset), heavily skewed negative; dropping them would shift positive prevalence from ~13.9% to ~15.3%. P3 must preserve the observed ~13.9% positive prevalence.
-- [ ] Define the P3 data contract in a reusable data module, likely `src/data.py`: raw data path, expected column order, target column (`Diabetes_binary`), feature groups, and valid value ranges for binary, ordinal, and numeric indicators.
-- [ ] Implement raw dataset loading with clear failure behavior when `data/raw/diabetes_binary_health_indicators_BRFSS2015.csv` is missing.
-- [ ] Implement validation for required/exact columns, missing values, integer-like values, target values, feature ranges, and duplicate-row policy compliance.
-- [ ] Apply the accepted duplicate policy before splitting: retain exact duplicate rows, keep the full 253,680-row dataset, and make the selected row count/prevalence explicit in returned metadata, logs, or reports.
-- [ ] Apply safe lossless downcasting to `uint8` only after validation confirms all values are whole numbers within the documented ranges.
-- [ ] Implement a reproducible stratified 70/10/20 train/calibration/test split with a fixed random seed, preserving the selected positive prevalence in train, calibration, and test sets.
-- [ ] Decide whether P3 should write processed split files to `data/processed/` or return splits in memory for now; document the choice before adding file outputs.
-- [ ] Add pytest coverage for loading, validation failures, duplicate-policy behavior, lossless `uint8` downcasting, split sizes, split reproducibility, and split class-proportion preservation.
-- [ ] Keep P3 limited to data preparation and splitting: do not add balancing, SMOTE, model training, feature engineering, Streamlit/app work, calibration, SHAP, or model-selection logic.
-- [ ] Carry forward the EDA's correlation observations (`GenHlth`/`PhysHlth`/`DiffWalk`, `Education`/`Income`) into preprocessing/model design discussions without dropping features solely on correlation grounds.
+- [x] Define the P3 data contract in a reusable data module, likely `src/data.py`: raw data path, expected column order, target column (`Diabetes_binary`), feature groups, and valid value ranges for binary, ordinal, and numeric indicators.
+- [x] Implement raw dataset loading with clear failure behavior when `data/raw/diabetes_binary_health_indicators_BRFSS2015.csv` is missing.
+- [x] Implement validation for required/exact columns, missing values, integer-like values, target values, feature ranges, and duplicate-row policy compliance.
+- [x] Apply the accepted duplicate policy before splitting: retain exact duplicate rows, keep the full 253,680-row dataset, and make the selected row count/prevalence explicit in returned metadata, logs, or reports.
+- [x] Apply safe lossless downcasting to `uint8` only after validation confirms all values are whole numbers within the documented ranges.
+- [x] Implement a reproducible stratified 70/10/20 train/calibration/test split with a fixed random seed, preserving the selected positive prevalence in train, calibration, and test sets.
+- [x] Record D-015: P3 returns splits in memory instead of writing processed split files to `data/processed/`; `data/processed/` stays empty until a consumer needs persisted files.
+- [x] Add pytest coverage for loading, validation failures, duplicate-policy behavior, lossless `uint8` downcasting, split sizes, split reproducibility, and split class-proportion preservation.
+- [x] Keep P3 limited to data preparation and splitting: do not add balancing, SMOTE, model training, feature engineering, Streamlit/app work, calibration, SHAP, or model-selection logic.
+- [x] Carry forward the EDA's correlation observations (`GenHlth`/`PhysHlth`/`DiffWalk`, `Education`/`Income`) into P4 model design discussions without dropping features solely on correlation grounds in P3.
+
+All E3 acceptance criteria are satisfied; see `src/data.py`, `tests/test_data.py`, D-014, D-015, and Iteration 3 in `docs/iteration-log.md`.
 
 ## Epic E4: Baseline and Candidate Modeling
 
@@ -120,6 +122,10 @@ Sourced from the P2 EDA findings in `notebooks/01_data_understanding_eda.ipynb` 
 | US-0401 | As a reviewer, I want a DummyClassifier baseline so that all real models are compared against a trivial reference. | P0 | To Do | Dummy metrics are computed and included in comparison outputs. |
 | US-0402 | As a reviewer, I want interpretable and tree-based candidates so that trade-offs are visible. | P0 | To Do | Logistic Regression and at least one tree-based model are trained and evaluated. |
 | US-0403 | As the developer, I want a model serialization policy so that Streamlit only loads known project artifacts. | P1 | To Do | Artifact format is selected, documented, and tested with a local load/predict check. |
+
+### Candidate Tasks for E4
+
+- [ ] Review the EDA correlation observations (`GenHlth`/`PhysHlth`/`DiffWalk`, `Education`/`Income`) during preprocessing and model design, without dropping features solely on correlation grounds.
 
 ## Epic E5: Streamlit MVP
 
