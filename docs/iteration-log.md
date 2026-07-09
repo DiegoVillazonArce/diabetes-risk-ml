@@ -220,11 +220,11 @@ This file tracks short planning and development iterations. It is intentionally 
 - Keep the calibration split untouched until probability calibration work (P8).
 - Keep D-013 (artifact distribution for deployment) in view before P7.
 
-## Next Iteration Planning: P5 Model Comparison and Selection
+## Iteration 5: Model Comparison and Selection
 
 **Date:** 2026-07-09
 
-**Status:** Ready for implementation
+**Status:** Completed
 
 **Goal:** Compare the P4 baselines against at least one restrained tree-based candidate and select the primary MVP model using the documented imbalanced-classification metric protocol.
 
@@ -243,3 +243,26 @@ This file tracks short planning and development iterations. It is intentionally 
 - Refined Epic E8 stories and candidate tasks in the backlog.
 - Moved roadmap P5 from Planned to Ready.
 - Added D-016 as a pending decision for the primary MVP model selection.
+
+### Completed
+
+- Extended `src/modeling.py` (no separate module was needed) with the P5 comparison contract: a restrained tree-based candidate (`HistGradientBoostingClassifier`, library defaults, fixed seed), a single imbalance-aware variant (`class_weight="balanced"` Logistic Regression, isolating the reweighting effect against the P4 baseline), `compare_models()` reusing the shared fit/evaluate loop, `comparison_table()` producing a long-format in-memory DataFrame with metrics by model and split, and `select_primary_model()`.
+- Selection criteria were fixed in code before the comparison ran: the dummy baseline is never selectable; candidates with a train/test PR-AUC gap above 0.10 are deprioritized as obvious overfitting risk; remaining candidates rank by test PR-AUC, then positive-class F1, recall, precision, and ROC-AUC, with the model name as a final deterministic tie-break. Accuracy is deliberately excluded from ranking because an always-negative model already scores ~86% at ~13.9% positive prevalence.
+- All four candidates (dummy, Logistic Regression, balanced Logistic Regression, `HistGradientBoostingClassifier`) were trained on the train split only and evaluated on train and test only via the P3/P4 contracts; the calibration split was never read, no raw data was reloaded or re-split, and everything stayed in memory.
+- Ran the comparison on the real dataset (`prepare_data()`, 253,680 rows). Test-split results: `HistGradientBoostingClassifier` ROC-AUC 0.827, PR-AUC 0.423, recall 0.157, precision 0.563, F1 0.246, accuracy 0.866, train/test PR-AUC gap 0.032; Logistic Regression ROC-AUC 0.819, PR-AUC 0.394 (matching the P4 smoke run); balanced Logistic Regression ROC-AUC 0.820, PR-AUC 0.393, recall 0.760, precision 0.311, F1 0.441, accuracy 0.732. No candidate triggered the overfitting flag.
+- Resolved D-016: `HistGradientBoostingClassifier` is the primary MVP model because it leads the primary ranking metric (test PR-AUC), also has the strongest ROC-AUC and positive-class precision, and shows a small train/test PR-AUC gap. The balanced variant improved default-threshold recall/F1 by construction but did not improve PR-AUC or ROC-AUC, so simple reweighting was not selected; the low default-threshold recall of the selected model is documented as a P8 threshold-analysis concern.
+- Confirmed serialization timing as D-017: no artifact is written in P5; the selected model will be serialized at the start of P6 with the D-010 `joblib` format plus a local load/predict check (US-0503). `models/` and `data/processed/` remain empty; D-013 stays pending for deployment distribution.
+- Added `tests/test_model_comparison.py` (15 tests, all on small synthetic splits reusing the P3/P4 fixtures): tree-based fit/evaluation, valid `predict_proba` in `[0, 1]` for both new candidates, comparison completeness and metric keys, comparison-table structure by model and split, compare/select determinism, selection unit tests on hand-crafted results (PR-AUC priority, accuracy ignored, F1 and name tie-breaks, overfitting deprioritization, dummy never selectable, reference-only error), a fit-spy check that all four models train on exactly the train rows, a poisoned-calibration check, a source guard against reloading/re-splitting/serializing, and a runtime check that no files appear in `models/` or `data/processed/`.
+- Verified `python -m pytest tests -v -p no:cacheprovider`: 55 passed (27 P3 + 13 P4 + 15 P5). Verified `python -m compileall src tests`: OK.
+- Marked US-0801, US-0802, and US-0803 Done in the backlog; set roadmap P5 to Done; updated the README current status to point to P6.
+
+### Decisions Added
+
+- Resolved D-016: `HistGradientBoostingClassifier` (library defaults, fixed seed) selected as the primary MVP model (Accepted).
+- Added D-017: model artifact serialization is deferred to the start of P6, paired with a local load/predict verification (Accepted).
+
+### Follow-Up
+
+- Refine P6 (Epic E5, Streamlit MVP) tasks before implementation: offline training/serialization of the D-016 model per D-017 and D-010, artifact load/predict smoke test (US-0503), individual prediction page with visible disclaimers (US-0501, US-0502).
+- Resolve D-013 (artifact distribution for deployment) before the first public deploy in P7.
+- Keep the calibration split untouched until P8; revisit the selected model's low default-threshold recall in the P8 threshold analysis.

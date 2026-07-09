@@ -6,7 +6,7 @@ Machine Learning app to estimate self-reported diabetes/prediabetes risk using B
 
 ## Current Status
 
-Reproducible data preparation/splitting (P3) and baseline modeling (P4, Dummy and Logistic Regression baselines in `src/modeling.py`) are complete. The next phase is model comparison and selection (P5).
+Reproducible data preparation/splitting (P3), baseline modeling (P4), and model comparison/selection (P5) are complete: `HistGradientBoostingClassifier` was selected as the primary MVP model (see decision D-016) after a formal comparison in `src/modeling.py`. The next phase is the Streamlit MVP (P6).
 
 ## Project Structure
 
