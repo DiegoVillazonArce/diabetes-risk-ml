@@ -119,22 +119,24 @@ All E3 acceptance criteria are satisfied; see `src/data.py`, `tests/test_data.py
 
 | ID | User Story | Priority | Status | Acceptance Criteria |
 |---|---|---:|---|---|
-| US-0401 | As a reviewer, I want a DummyClassifier baseline so that all real models are compared against a trivial reference. | P0 | To Do | Dummy metrics are computed and included in comparison outputs. |
-| US-0402 | As a reviewer, I want a first interpretable model so that a non-trivial reference performance exists before adding model complexity. | P0 | To Do | Logistic Regression is trained through reusable P4 modeling code, likely `src/modeling.py`, using the `src.data.prepare_data()` splits and evaluated with ROC-AUC, PR-AUC, recall, precision, F1, confusion matrix, and accuracy (secondary) on train and test only. |
+| US-0401 | As a reviewer, I want a DummyClassifier baseline so that all real models are compared against a trivial reference. | P0 | Done | Dummy metrics are computed and included in comparison outputs. |
+| US-0402 | As a reviewer, I want a first interpretable model so that a non-trivial reference performance exists before adding model complexity. | P0 | Done | Logistic Regression is trained through reusable P4 modeling code, likely `src/modeling.py`, using the `src.data.prepare_data()` splits and evaluated with ROC-AUC, PR-AUC, recall, precision, F1, confusion matrix, and accuracy (secondary) on train and test only. |
 
 ### Candidate Tasks for E4
 
-- [ ] Create reusable P4 modeling code, likely `src/modeling.py`, for baseline model construction, fitting, prediction, and metric calculation; keep notebooks optional for narrative/reporting rather than as the only implementation.
-- [ ] Use `src.data.prepare_data()` as the exclusive data entry point for P4; do not reload or re-split the raw data ad hoc.
-- [ ] Separate features (`X`) and target (`y`) for the train and test splits; keep the calibration split unused in P4 so it remains reserved for later probability calibration work.
-- [ ] Train a `DummyClassifier` baseline (most-frequent or stratified strategy).
-- [ ] Train `LogisticRegression` as the first interpretable model.
-- [ ] Define minimal preprocessing needed for Logistic Regression (e.g. scaling), without heavy feature engineering.
-- [ ] Evaluate both models on train and test with ROC-AUC, PR-AUC, recall, precision, F1, and confusion matrix, reporting accuracy only as a secondary metric.
-- [ ] Keep results in memory or in a lightweight report; do not serialize any model artifact in P4.
-- [ ] Add pytest coverage: the pipeline fits on a small sample, `predict_proba` returns probabilities in `[0, 1]`, metrics compute without errors, training never touches calibration/test rows, and P4 evaluation does not consume calibration rows.
-- [ ] Review the EDA correlation observations (`GenHlth`/`PhysHlth`/`DiffWalk`, `Education`/`Income`) during Logistic Regression preprocessing, without dropping features solely on correlation grounds.
-- [ ] Keep P4 limited to the Dummy and Logistic Regression baseline: do not add tree-based candidates, formal model comparison/selection, or serialization policy, which belong to Epic E8 (P5). Do not add calibration-set evaluation, SHAP, deep calibration, Streamlit/app work, fairness analysis, or advanced threshold tuning; those belong to P8 or later phases.
+- [x] Create reusable P4 modeling code, likely `src/modeling.py`, for baseline model construction, fitting, prediction, and metric calculation; keep notebooks optional for narrative/reporting rather than as the only implementation.
+- [x] Use `src.data.prepare_data()` as the exclusive data entry point for P4; do not reload or re-split the raw data ad hoc.
+- [x] Separate features (`X`) and target (`y`) for the train and test splits; keep the calibration split unused in P4 so it remains reserved for later probability calibration work.
+- [x] Train a `DummyClassifier` baseline (most-frequent or stratified strategy).
+- [x] Train `LogisticRegression` as the first interpretable model.
+- [x] Define minimal preprocessing needed for Logistic Regression (e.g. scaling), without heavy feature engineering.
+- [x] Evaluate both models on train and test with ROC-AUC, PR-AUC, recall, precision, F1, and confusion matrix, reporting accuracy only as a secondary metric.
+- [x] Keep results in memory or in a lightweight report; do not serialize any model artifact in P4.
+- [x] Add pytest coverage: the pipeline fits on a small sample, `predict_proba` returns probabilities in `[0, 1]`, metrics compute without errors, training never touches calibration/test rows, and P4 evaluation does not consume calibration rows.
+- [x] Review the EDA correlation observations (`GenHlth`/`PhysHlth`/`DiffWalk`, `Education`/`Income`) during Logistic Regression preprocessing, without dropping features solely on correlation grounds.
+- [x] Keep P4 limited to the Dummy and Logistic Regression baseline: do not add tree-based candidates, formal model comparison/selection, or serialization policy, which belong to Epic E8 (P5). Do not add calibration-set evaluation, SHAP, deep calibration, Streamlit/app work, fairness analysis, or advanced threshold tuning; those belong to P8 or later phases.
+
+All E4 acceptance criteria are satisfied; see `src/modeling.py`, `tests/test_modeling.py`, and Iteration 4 in `docs/iteration-log.md`.
 
 ## Epic E8: Model Comparison and Selection
 

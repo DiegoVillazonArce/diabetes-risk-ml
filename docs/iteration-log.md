@@ -184,11 +184,11 @@ This file tracks short planning and development iterations. It is intentionally 
 - Use the in-memory P3 split functions from `src/data.py` for baseline training.
 - Keep D-013 in view before deployment work begins.
 
-## Next Iteration Planning: P4 Baseline Modeling
+## Iteration 4: Baseline Modeling
 
-**Date:** 2026-07-07
+**Date:** 2026-07-07 to 2026-07-08
 
-**Status:** Planned
+**Status:** Completed
 
 **Goal:** Establish a first verifiable training/evaluation baseline (`DummyClassifier` and `LogisticRegression`) on top of the P3 data preparation module, without expanding into tree-based candidates or formal model comparison yet.
 
@@ -202,3 +202,20 @@ This file tracks short planning and development iterations. It is intentionally 
 - P4 should not serialize a model artifact, train a tree-based candidate, or select a primary model; those steps belong to P5 (Epic E8).
 - P4 should not add SHAP, deep calibration, Streamlit/app work, fairness analysis, or advanced threshold tuning.
 - Add lightweight pytest coverage: the pipeline fits on a small sample, `predict_proba` returns probabilities in `[0, 1]`, metrics compute without errors, training never touches calibration/test rows, and P4 evaluation does not consume calibration rows.
+
+### Completed
+
+- `src/modeling.py` implements the P4 baseline contract: conversion of P3 `DataSplits` into X/y train/test frames (calibration deliberately absent), a `DummyClassifier` (most-frequent) trivial reference, a `StandardScaler` + `LogisticRegression` pipeline as the first interpretable model, positive-class probability prediction, and the documented metric set (ROC-AUC, PR-AUC, recall, precision, F1, confusion matrix, and accuracy as secondary context).
+- `train_and_evaluate_baselines()` fits both baselines on the train split only, evaluates on train and test only, and returns lightweight in-memory `BaselineResult` structures; no model artifact or processed split file is written, and `data/processed/` and `models/` remain empty.
+- Scaling is the only preprocessing: features share no common scale (`BMI` in [12, 98] vs. 0/1 indicators) and scaling keeps lbfgs convergence well-conditioned. The P2 correlation observations (`GenHlth`/`PhysHlth`/`DiffWalk`, `Education`/`Income`, Spearman ~0.42-0.45) were reviewed: all 21 features are kept, since moderate collinearity mainly affects coefficient interpretability and the default L2 regularization stabilizes the fit; no features were dropped on correlation grounds.
+- `tests/test_modeling.py` covers small-sample fits for both baselines, `predict_proba` validity in `[0, 1]`, metric keys and hand-computed metric values, degenerate all-negative predictions, train/test evaluation via the orchestrator, determinism, a fit-spy check that training uses exactly the train rows, a poisoned-calibration check that P4 never consumes the calibration split, and a guard that the module never reloads or re-splits raw data.
+- Verified `python -m pytest tests -v`: 40 passed (27 P3 + 13 new P4 tests). Verified `python -m compileall src tests`: OK.
+- Smoke-ran the full pipeline on the real dataset via `prepare_data()`: the dummy baseline scores ROC-AUC 0.5, recall/precision/F1 0.0, and ~86.1% accuracy (the prevalence floor that motivates the secondary role of accuracy); Logistic Regression reaches test ROC-AUC ~0.819, PR-AUC ~0.394, recall ~0.16, precision ~0.52, F1 ~0.24 at the default 0.5 threshold, with train and test metrics closely aligned (no overfitting signal). The low default-threshold recall is expected without balancing/threshold tuning, which remain out of P4 scope.
+- Marked US-0401 and US-0402 Done in the backlog; set roadmap P4 to Done; updated the README current status to point to P5.
+
+### Follow-Up
+
+- Refine P5 (Epic E8) tasks before implementation: tree-based candidate on the same P3 splits, formal comparison of Dummy/Logistic Regression/tree-based with the documented imbalanced-classification metrics, primary model selection, and the serialization policy (US-0803, D-010).
+- Consider `class_weight="balanced"` and threshold analysis during P5/P8 comparisons; the P4 baseline's low default-threshold recall is the motivating data point.
+- Keep the calibration split untouched until probability calibration work (P8).
+- Keep D-013 (artifact distribution for deployment) in view before P7.
