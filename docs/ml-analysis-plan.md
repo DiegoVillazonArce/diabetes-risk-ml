@@ -129,6 +129,8 @@ P4 establishes the Dummy and Logistic Regression baseline only; P5 extends to th
 
 P4 modeling code should live in a reusable source module, likely `src/modeling.py`; notebooks may summarize results, but they should not be the only implementation path.
 
+P5 should build on the P3/P4 contracts rather than reloading or re-splitting data. Candidate models should train on the train split and be evaluated on train and test only, leaving the calibration split untouched for P8 probability calibration. The comparison should return an in-memory table or structured result with the documented metrics by model and split, and model selection should prioritize PR-AUC and positive-class recall/precision/F1 over accuracy.
+
 Post-MVP candidates:
 
 - XGBoost.
@@ -148,13 +150,14 @@ Initial plan:
 
 ## Imbalance Strategy
 
-Initial strategies to compare:
+Initial MVP strategies to consider:
 
 - No balancing.
 - `class_weight="balanced"` where supported.
-- SMOTE or sampling methods only inside cross-validation via `imblearn.Pipeline`.
 
 The test set must never be balanced.
+
+P5 may decide whether a simple imbalance-aware variant such as `class_weight="balanced"` belongs in the comparison. SMOTE, other resampling methods, threshold tuning, and calibration should stay out of P5 unless the backlog explicitly expands that scope.
 
 ## Evaluation Metrics
 
@@ -238,6 +241,7 @@ The MVP should include focused pytest coverage for high-risk project behavior:
 - Data quality checks: missing values, duplicate handling, and class distribution reporting.
 - Split checks: stratified train/calibration/test splits preserve the selected target distribution within a small tolerance.
 - Pipeline checks: preprocessing and model pipeline can fit on a small sample and produce valid probabilities.
+- Model-comparison checks: tree-based candidates can fit and produce probabilities, comparison outputs have metrics by model and split, selection is deterministic, and P5 code does not use calibration rows or reload/re-split data ad hoc.
 - Artifact checks: serialized model can be loaded locally and returns probabilities in `[0, 1]`.
 
 Streamlit-specific smoke tests should be considered after the MVP app exists.

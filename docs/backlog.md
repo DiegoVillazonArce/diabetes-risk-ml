@@ -142,16 +142,24 @@ All E4 acceptance criteria are satisfied; see `src/modeling.py`, `tests/test_mod
 
 | ID | User Story | Priority | Status | Acceptance Criteria |
 |---|---|---:|---|---|
-| US-0801 | As a reviewer, I want a tree-based candidate compared formally against the P4 baseline so that trade-offs are visible. | P0 | To Do | At least one tree-based model (e.g. `RandomForestClassifier` or `HistGradientBoostingClassifier`) is trained and evaluated with the same metrics as P4, alongside Dummy and Logistic Regression. |
-| US-0802 | As the developer, I want a primary candidate model selected and justified so that later phases serve a deliberate choice. | P0 | To Do | A decision record identifies the selected model and the metric-based rationale. |
-| US-0803 | As the developer, I want a model serialization policy so that Streamlit only loads known project artifacts. | P1 | To Do | Artifact format is selected, documented, and tested with a local load/predict check. |
+| US-0801 | As a reviewer, I want a tree-based candidate compared formally against the P4 baseline so that trade-offs are visible. | P0 | Ready | Dummy, Logistic Regression, and at least one restrained tree-based candidate (preferably `HistGradientBoostingClassifier` or `RandomForestClassifier`) are trained through the P3/P4 contracts and evaluated with the same train/test metric protocol. |
+| US-0802 | As the developer, I want a primary candidate model selected and justified so that later phases serve a deliberate choice. | P0 | Ready | Selection criteria are defined before implementation, the selected model is documented with metric-based rationale, and PR-AUC plus positive-class recall/precision/F1 are prioritized over accuracy. |
+| US-0803 | As the developer, I want a model serialization policy so that Streamlit only loads known project artifacts. | P1 | Ready | Serialization format and timing are documented consistently with D-010 (`joblib`) while D-013 remains pending for deployment artifact distribution; any artifact write requires an explicit decision and a local load/predict check. |
 
 ### Candidate Tasks for E8
 
-- [ ] Train at least one tree-based candidate on the same P3 splits used in P4.
-- [ ] Compare all candidates (Dummy, Logistic Regression, tree-based) formally using the documented imbalanced-classification metrics.
-- [ ] Select and document the primary candidate model with its rationale.
-- [ ] Define or finalize the model serialization policy (moved from the former US-0403) before artifacts are produced.
+- [ ] Use the existing P3/P4 contracts: consume `src.data.prepare_data()` or supplied `DataSplits`, convert splits through the existing train/test helpers, and avoid ad hoc raw-data loading, re-splitting, or processed split files.
+- [ ] Reuse or extend `src/modeling.py` for P5 model builders, evaluation, and comparison unless a separate orchestration module has a clear reason.
+- [ ] Train Dummy, Logistic Regression, and at least one restrained tree-based candidate on the train split only. Prefer a practical MVP candidate such as `HistGradientBoostingClassifier` or `RandomForestClassifier` with deterministic settings.
+- [ ] Decide during P5 implementation whether a simple imbalance-aware variant such as `class_weight="balanced"` belongs in the comparison. Do not add SMOTE, advanced resampling, threshold tuning, or calibration unless P5 scope is explicitly expanded first.
+- [ ] Evaluate every candidate on train and test only with the same metric protocol used in P4: ROC-AUC, PR-AUC, positive-class recall, precision, F1, confusion matrix, and accuracy as secondary context.
+- [ ] Keep the calibration split untouched so it remains reserved for P8 probability calibration.
+- [ ] Produce an in-memory comparison table or structured result with metrics by model and split; do not require notebooks as the only comparison path.
+- [ ] Define selection criteria before comparing models. Prioritize PR-AUC and positive-class recall/precision/F1 because the selected population has ~13.9% positive prevalence; treat accuracy as secondary because an always-negative model already scores about 86%.
+- [ ] Select and document the primary model with metric-based rationale. Do not create a final model-selection decision before the P5 metrics exist.
+- [ ] Confirm the selected model's serialization policy before writing artifacts: D-010 accepts `joblib` for MVP serialization, while D-013 still governs how artifacts reach deployment. Do not write model artifacts in P5 unless the timing is explicitly decided and tested.
+- [ ] Add pytest coverage expectations for tree-based fit/`predict_proba`, comparison result structure, deterministic selection behavior, no calibration-split usage, no ad hoc re-splitting/reloading, and no artifact writes unless explicitly authorized by a decision.
+- [ ] Keep P5 limited to model comparison and selection: no Streamlit/app work, SHAP, fairness analysis, deep calibration, advanced threshold tuning, batch prediction, or scenario exploration.
 
 ## Epic E5: Streamlit MVP
 

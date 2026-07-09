@@ -216,6 +216,30 @@ This file tracks short planning and development iterations. It is intentionally 
 ### Follow-Up
 
 - Refine P5 (Epic E8) tasks before implementation: tree-based candidate on the same P3 splits, formal comparison of Dummy/Logistic Regression/tree-based with the documented imbalanced-classification metrics, primary model selection, and the serialization policy (US-0803, D-010).
-- Consider `class_weight="balanced"` and threshold analysis during P5/P8 comparisons; the P4 baseline's low default-threshold recall is the motivating data point.
+- Consider `class_weight="balanced"` during P5 if it fits the model-comparison scope; leave threshold analysis for P8 unless P5 scope is explicitly expanded.
 - Keep the calibration split untouched until probability calibration work (P8).
 - Keep D-013 (artifact distribution for deployment) in view before P7.
+
+## Next Iteration Planning: P5 Model Comparison and Selection
+
+**Date:** 2026-07-09
+
+**Status:** Ready for implementation
+
+**Goal:** Compare the P4 baselines against at least one restrained tree-based candidate and select the primary MVP model using the documented imbalanced-classification metric protocol.
+
+### Planned Scope
+
+- Use the existing P3/P4 contracts: `prepare_data()` / `DataSplits`, train/test conversion, and reusable metrics in `src/modeling.py`.
+- Train candidates on the train split only and evaluate on train and test only.
+- Keep the calibration split untouched for P8 probability calibration.
+- Compare Dummy, Logistic Regression, and a tree-based candidate such as `HistGradientBoostingClassifier` or `RandomForestClassifier` in an in-memory comparison result.
+- Define selection criteria before implementation, prioritizing PR-AUC and positive-class recall/precision/F1 over accuracy because the selected population is only ~13.9% positive.
+- Decide whether a simple imbalance-aware variant such as `class_weight="balanced"` belongs in P5; keep SMOTE, advanced threshold tuning, calibration, SHAP, fairness analysis, Streamlit/app work, batch prediction, and scenario exploration out of scope.
+- Confirm serialization timing before any artifact write. D-010 already accepts `joblib` as the MVP format, but D-013 remains pending for deployment distribution.
+
+### Prepared Updates
+
+- Refined Epic E8 stories and candidate tasks in the backlog.
+- Moved roadmap P5 from Planned to Ready.
+- Added D-016 as a pending decision for the primary MVP model selection.
