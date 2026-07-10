@@ -61,7 +61,7 @@ The MVP is successful when:
 - The data split strategy prevents leakage and preserves the original test distribution.
 - At least one baseline and two meaningful candidate models are evaluated.
 - Metrics are reported with emphasis on imbalanced classification, not accuracy alone.
-- A Streamlit MVP can load a trained artifact and return an estimated risk probability, with formal probability calibration planned as a later enhancement if it is not included in the first deployable version.
+- A Streamlit MVP can load a trained artifact and return an estimated risk probability; the first deployable version remains uncalibrated, with formal probability calibration and threshold analysis reserved for P8.
 - The README explains the project clearly enough for a portfolio reviewer.
 
 ## Constraints

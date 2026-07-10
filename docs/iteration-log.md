@@ -312,3 +312,47 @@ This file tracks short planning and development iterations. It is intentionally 
 - Refine P7 (Epic E7, MVP Documentation and Deployment) before implementation: complete run instructions (US-0701), resolve D-013 before the first public deploy (US-0702), and deploy the MVP to Streamlit Community Cloud (US-0703).
 - Keep the calibration split untouched until P8; the selected model's low default-threshold recall and the uncalibrated probabilities remain documented P8 concerns.
 - Evaluate `skops` as a safer serialization option before final portfolio packaging, per D-010.
+
+## Next Iteration Planning: P7 MVP Documentation and Deployment
+
+**Date:** 2026-07-10
+
+**Status:** Ready for implementation
+
+**Goal:** Turn the completed P6 local MVP into a reviewer-reproducible and publicly accessible deployment by validating the run documentation, resolving D-013 from evidence, implementing only the selected artifact-distribution policy, and verifying the public app without expanding the modeling scope.
+
+### Planned Scope
+
+Execute P7 as small, verifiable increments, targeting 1-2 days per iteration where practical, in this order:
+
+1. Complete and validate reproducible documentation for Python 3.12 environment setup, exact CSV acquisition, artifact generation, the full test suite, local app launch, and incompatible-artifact recovery.
+2. Evaluate the controlled Git exception, GitHub Release asset, and build-time generation alternatives against the D-013 criteria, incorporating the P6 evidence that the current single-bundle artifact is approximately 263 KB.
+3. Resolve D-013 with the selected distribution policy and rationale before any public deployment work depends on that choice.
+4. Implement and verify only the policy selected by D-013, preserving the known-artifact contract and the separation between offline/build-time artifact generation and Streamlit runtime serving.
+5. Prepare Streamlit Community Cloud from GitHub by verifying Linux and Python 3.12 compatibility, reviewing the existing `requirements.txt`, selecting the correct interpreter, and configuring the repository, branch, and entry point.
+6. Deploy the MVP and review dependency-installation, startup, artifact-resolution, validation, and load logs.
+7. Define and commit exact-input reference profiles with locally verified expected display outputs and a documented comparison tolerance, then reuse them in public smoke tests covering all 21 features, exact-age-to-BRFSS conversion, missing/invalid-artifact errors, disclaimer visibility, and absence of published CSV, secrets, or persisted user data. The manually observed P6 outputs near 0.3%, 60%, 70%, and 79.9% are candidate coverage targets, not established fixtures until P7 records and verifies them.
+8. Add the verified public URL and final instructions to the README, record the validation evidence, and close P7 only when all acceptance criteria are satisfied.
+
+Use four suggested 1-2 day slices while preserving that sequence: reproducible documentation and clean-clone validation (step 1); alternative comparison and D-013 (steps 2-3); selected-policy implementation and deployment preparation/launch (steps 4-6); and public verification plus documentation/closure (steps 7-8).
+
+Throughout P7, keep the calibration split untouched. Do not add calibration, threshold selection or modification, experimental retraining, new-model comparison, SHAP, fairness analysis, batch prediction, scenario exploration, authentication, user-input persistence, or user analytics. P8 remains responsible for calibration and threshold analysis; P9 remains responsible for SHAP.
+
+### Planning Completed
+
+- Refined US-0701, US-0702, and US-0703 into Ready stories with verifiable acceptance criteria and detailed candidate tasks based on P6 evidence.
+- Defined the clean-clone reproducibility check, formal D-013 comparison gate, selected-policy-only implementation rule, Streamlit Community Cloud preparation, and public smoke-test contract.
+- Moved roadmap P7 from Planned to Ready while leaving P8, P9, and later phases at high level.
+- Added explicit P7 scope guardrails and preserved the calibration split for P8.
+- Corrected only planning ambiguities about the timing of D-013 and the ownership of calibration and threshold analysis; no deployment implementation was performed.
+
+### Decisions Added
+
+- None. D-013 remains Pending during this refinement and must be resolved from the planned comparison before the first public deployment in P7.
+
+### Follow-Up
+
+- Start with US-0701 and validate the full documented workflow from a clean clone or environment before evaluating artifact distribution.
+- Resolve D-013 only after the three alternatives have been compared with the documented criteria; then implement only the selected path.
+- Preserve the calibration split for P8 calibration and threshold analysis, and leave SHAP for P9.
+- Do not mark P7 or any E7 story Done until the selected distribution policy, public deployment, smoke tests, and final README URL are implemented and verified.
