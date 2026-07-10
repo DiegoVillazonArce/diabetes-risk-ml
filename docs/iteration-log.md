@@ -267,11 +267,11 @@ This file tracks short planning and development iterations. It is intentionally 
 - Resolve D-013 (artifact distribution for deployment) before the first public deploy in P7.
 - Keep the calibration split untouched until P8; revisit the selected model's low default-threshold recall in the P8 threshold analysis.
 
-## Next Iteration Planning: P6 Streamlit MVP
+## Iteration 6: Streamlit MVP
 
-**Date:** 2026-07-09
+**Date:** 2026-07-09 to 2026-07-10
 
-**Status:** Ready for implementation
+**Status:** Completed
 
 **Goal:** Serialize the D-016 primary model as a local artifact per the D-017 timing and D-010 format, then build a minimal local Streamlit app that loads it for single-case educational risk prediction.
 
@@ -289,3 +289,26 @@ This file tracks short planning and development iterations. It is intentionally 
 - Refined Epic E5 stories and candidate tasks in the backlog, including a new US-0504 for the artifact helper module.
 - Moved roadmap P6 from Planned to Ready.
 - Clarified the local artifact/app boundary and the P6/P7 split in the ML analysis plan.
+
+### Completed
+
+- `src/artifacts.py` implements the P6 artifact contract (US-0504): the D-016 `HistGradientBoostingClassifier` is trained on the P3 train split only, through `src.data.prepare_data()` and the existing P5 builder/evaluation helpers (the calibration split is never read), and serialized with `joblib` (D-010) as a single bundle holding the fitted model plus serving metadata: schema version, model identity with the D-016 reference, exact `FEATURE_COLUMNS` order, target name, random seed, P5-protocol train/test metrics, dataset summary, package versions, and creation timestamp.
+- Artifact safety helpers: `validate_artifact_bundle()` rejects incomplete or incompatible bundles (wrong layout, missing metadata keys, schema-version mismatch, wrong declared model class or selection decision, feature-order drift against the current contract, or wrong target) and verifies the model object directly instead of trusting self-declared metadata: it must be a fitted D-016 `HistGradientBoostingClassifier` with the contract's fitted feature order, binary `[0, 1]` classes, and the D-016 hyperparameters (library defaults with the recorded seed). `load_artifact()` fails with regeneration instructions when the artifact is absent, and wraps deserialization failures (truncated or corrupt files) in the same clear guidance; `save_artifact()` writes atomically, requires the `.joblib` extension, and refuses repository locations outside `models/` because only `models/*.joblib` is git-ignored.
+- The app-facing serving path (US-0503) also lives in `src/artifacts.py` and never imports Streamlit: `validate_input_values()` requires exactly the 21 features with integer-like values inside the P3 `VALUE_RANGES`, `input_to_dataframe()` builds one `uint8` row in exact training feature order, and `predict_risk_probability()` returns the raw positive-class `predict_proba` output with no custom threshold or calibration (both remain P8 scope).
+- `python -m src.artifacts` generates the local artifact and runs the required load/predict smoke check (D-017). Real-data run: artifact saved to `models/diabetes_risk_model.joblib` (~263 KB, git-ignored), test metrics reproduce the D-016 selection evidence exactly (PR-AUC 0.423, ROC-AUC 0.827, recall 0.157, precision 0.563, F1 0.246), and the example-case probability was 0.0254.
+- `app/streamlit_app.py` implements the local MVP (US-0501, US-0502) as a thin UI over the serving contract: a cached one-time artifact load (`st.cache_resource`; the app never trains or retrains), a single-case form covering all 21 features grouped as yes/no checkboxes, human-readable ordinal selectboxes that hide internal codes, an exact-age input (18-120) mapped automatically to the matching BRFSS age interval, and range-bounded numeric inputs, an educational risk percentage from `predict_proba`, a medical disclaimer visible alongside every prediction, and clear errors plus regeneration instructions when the artifact is missing or invalid.
+- Added `tests/test_artifacts.py` (50 tests) and `tests/test_app.py` (10 tests): bundle contents and required metadata, save/load round-trip, exact feature-order preservation, rejection of twelve incompatible-bundle mutations plus direct model-object checks (impostor estimators with self-consistent metadata, unfitted models, drifted fitted feature order, non-binary classes, tuned hyperparameters), corrupt-file load errors that keep the regeneration command, refusal of unignored repository save locations, probability validity in `[0, 1]`, input validation (missing, unexpected, non-integer, non-numeric, and out-of-range values), exact-age-to-BRFSS-interval conversion and validation, a fit-spy check that training uses exactly the train rows, a poisoned-calibration check that the calibration split is never consumed, source guards against reloading/re-splitting, git-ignore verification for the default artifact path, app import safety (importing the app loads no artifact and trains nothing), a durable local-only artifact-loading guard (no remote sources or deployment secrets; deliberately phrased so legitimate P7 deployment files will not break it), and headless render/predict workflow checks with Streamlit's built-in `AppTest` harness (form renders without exposing internal dropdown codes, submission shows a valid percentage with the disclaimer, and missing or corrupt artifacts show a clear error). All artifact writes go to pytest temporary directories; a real-data integration test regenerates and verifies the artifact end to end and is skipped when the raw CSV is absent.
+- A post-implementation review hardened the artifact contract: the validator originally trusted the self-declared `model_class`/`selection_decision` metadata, deserialization errors from corrupt files escaped the app's error handling, a phase-temporal "no deployment files" test would have blocked legitimate P7 work, and the `.joblib` extension check overclaimed git-ignore coverage for paths outside `models/`. All four findings were fixed and covered by the tests above.
+- Verified `python -m pytest tests -v -p no:cacheprovider`: 115 passed (27 P3 + 13 P4 + 15 P5 + 60 P6). Verified `python -m compileall src app tests`: OK. The app imports in ~2 s without retraining, and `streamlit run app/streamlit_app.py` serves locally (HTTP 200).
+- Scope held: no calibration usage, threshold tuning, SHAP, fairness analysis, batch prediction, scenario exploration, public deployment, or artifact distribution work. `data/processed/` stays empty and the generated artifact remains git-ignored and unstaged.
+- Marked US-0501, US-0502, US-0503, and US-0504 Done in the backlog; set roadmap P6 to Done; updated the README with the current status and the artifact/app commands.
+
+### Decisions Added
+
+- None. Serialization followed the already accepted D-010 (joblib), D-016 (selected model), and D-017 (timing plus load/predict check); the single-bundle artifact layout is an implementation detail within D-010. D-013 (artifact distribution for deployment) intentionally remains Pending for P7.
+
+### Follow-Up
+
+- Refine P7 (Epic E7, MVP Documentation and Deployment) before implementation: complete run instructions (US-0701), resolve D-013 before the first public deploy (US-0702), and deploy the MVP to Streamlit Community Cloud (US-0703).
+- Keep the calibration split untouched until P8; the selected model's low default-threshold recall and the uncalibrated probabilities remain documented P8 concerns.
+- Evaluate `skops` as a safer serialization option before final portfolio packaging, per D-010.

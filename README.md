@@ -6,7 +6,18 @@ Machine Learning app to estimate self-reported diabetes/prediabetes risk using B
 
 ## Current Status
 
-Reproducible data preparation/splitting (P3), baseline modeling (P4), and model comparison/selection (P5) are complete: `HistGradientBoostingClassifier` was selected as the primary MVP model (see decision D-016) after a formal comparison in `src/modeling.py`. The next phase is the Streamlit MVP (P6).
+Reproducible data preparation/splitting (P3), baseline modeling (P4), model comparison/selection (P5), and the local Streamlit MVP (P6) are complete: the selected `HistGradientBoostingClassifier` (decision D-016) is trained and serialized locally through `src/artifacts.py`, and `app/streamlit_app.py` serves single-case educational risk predictions from that artifact. The next phase is MVP documentation and the first public deployment (P7), which will also resolve the pending artifact-distribution decision (D-013).
+
+### Generate the model artifact and run the local app
+
+With the project environment installed and activated and the raw CSV in place (see Dataset below), run from the project root:
+
+```
+python -m src.artifacts             # train the selected model and save models/diabetes_risk_model.joblib
+streamlit run app/streamlit_app.py  # launch the local prediction app
+```
+
+The generated artifact stays local (`models/` contents are git-ignored); the app only loads it and never retrains. Predictions are educational risk estimates with a visible medical disclaimer, not diagnoses.
 
 ## Project Structure
 

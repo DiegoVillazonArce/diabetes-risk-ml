@@ -73,7 +73,7 @@ Expected BRFSS features:
 
 Important notes:
 
-- `Age` is an ordinal age group, not exact age in years.
+- `Age` is an ordinal age group in the dataset and model, not exact age in years. The P6 UI may collect an exact adult age as a convenience, but it must deterministically map that value to the documented BRFSS age-group code before inference.
 - `Education` and `Income` are ordinal socioeconomic indicators.
 - The data is self-reported survey data, not clinical measurement data.
 
@@ -146,7 +146,7 @@ The app should only load artifacts created by this project's offline training pi
 Initial plan:
 
 - Use `joblib` for MVP model serialization, because it is the standard practical option for scikit-learn pipelines.
-- Store lightweight metadata beside the artifact, such as training date, feature order, model type, metrics, and package versions.
+- Store lightweight metadata with the artifact, such as training date, feature order, model type, metrics, and package versions. P6 implemented this as a single joblib bundle holding both the fitted model and its metadata, so the two cannot drift apart.
 - Do not load model artifacts from untrusted external sources.
 - Evaluate `skops` before final portfolio packaging if safer model serialization becomes a priority.
 
