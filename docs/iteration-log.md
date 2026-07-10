@@ -266,3 +266,26 @@ This file tracks short planning and development iterations. It is intentionally 
 - Refine P6 (Epic E5, Streamlit MVP) tasks before implementation: offline training/serialization of the D-016 model per D-017 and D-010, artifact load/predict smoke test (US-0503), individual prediction page with visible disclaimers (US-0501, US-0502).
 - Resolve D-013 (artifact distribution for deployment) before the first public deploy in P7.
 - Keep the calibration split untouched until P8; revisit the selected model's low default-threshold recall in the P8 threshold analysis.
+
+## Next Iteration Planning: P6 Streamlit MVP
+
+**Date:** 2026-07-09
+
+**Status:** Ready for implementation
+
+**Goal:** Serialize the D-016 primary model as a local artifact per the D-017 timing and D-010 format, then build a minimal local Streamlit app that loads it for single-case educational risk prediction.
+
+### Planned Scope
+
+- Train the D-016 `HistGradientBoostingClassifier` through the existing P3/P4/P5 contracts (`src.data.prepare_data()`, `src/modeling.py` builders) at the start of P6; do not reload or re-split raw data ad hoc.
+- Serialize the fitted model with `joblib` (D-010) following the D-017 timing, through a small artifact helper module, likely `src/artifacts.py`, that also saves metadata: feature order, target name, model type, key P5 comparison metrics, and package versions or other minimal reproducibility metadata where feasible.
+- Add a local load/predict verification (reloaded artifact returns probabilities in `[0, 1]`) before the app depends on it; keep `models/*.joblib` git-ignored.
+- Build a minimal Streamlit app, likely `app/streamlit_app.py`, with a single-case input form for all 21 `src.data.FEATURE_COLUMNS`, grouped by binary/ordinal/numeric type, validated against the P3 feature ranges, assembled into a one-row DataFrame in training feature order, and scored with `predict_proba` into an educational risk percentage alongside a visible medical disclaimer and limitations text.
+- Keep P6 a local functional MVP only: no calibration, threshold tuning, SHAP, fairness analysis, batch prediction, scenario exploration, public deployment, or artifact distribution decisions. D-013 stays pending for P7 unless a real deployment-distribution decision is actually made.
+- Expected tests: artifact save/load round-trip; local load/predict probability in `[0, 1]`; metadata includes feature order and selected model identity; the input-to-DataFrame helper preserves feature order; input validation rejects missing/out-of-range values; an app-facing prediction helper is testable without launching Streamlit; and no public deployment logic is introduced.
+
+### Prepared Updates
+
+- Refined Epic E5 stories and candidate tasks in the backlog, including a new US-0504 for the artifact helper module.
+- Moved roadmap P6 from Planned to Ready.
+- Clarified the local artifact/app boundary and the P6/P7 split in the ML analysis plan.

@@ -129,7 +129,9 @@ P4 establishes the Dummy and Logistic Regression baseline only; P5 extends to th
 
 P4 modeling code should live in a reusable source module, likely `src/modeling.py`; notebooks may summarize results, but they should not be the only implementation path.
 
-P5 should build on the P3/P4 contracts rather than reloading or re-splitting data. Candidate models should train on the train split and be evaluated on train and test only, leaving the calibration split untouched for P8 probability calibration. The comparison should return an in-memory table or structured result with the documented metrics by model and split, and model selection should prioritize PR-AUC and positive-class recall/precision/F1 over accuracy.
+P5 should build on the P3/P4 contracts rather than reloading or re-splitting data. Candidate models should train on the train split and be evaluated on train and test only, leaving the calibration split untouched for P8 probability calibration. The comparison should return an in-memory table or structured result with the documented metrics by model and split, and model selection should prioritize PR-AUC and positive-class recall/precision/F1 over accuracy. P5 selected `HistGradientBoostingClassifier` as the primary MVP model (D-016) without writing any artifact.
+
+P6 trains and serializes the D-016 model once, at the start of the phase (D-017); after artifact creation, the Streamlit app only loads that local artifact and does not retrain, re-compare, or reload/re-split raw data. P6 is a local functional MVP, not a public deployment (see the Model Artifact Plan below and D-013).
 
 Post-MVP candidates:
 
@@ -147,6 +149,8 @@ Initial plan:
 - Store lightweight metadata beside the artifact, such as training date, feature order, model type, metrics, and package versions.
 - Do not load model artifacts from untrusted external sources.
 - Evaluate `skops` before final portfolio packaging if safer model serialization becomes a priority.
+
+Per D-017, serialization happens once, at the start of P6, using the D-016 selected model and the D-010 `joblib` format, paired with a local load/predict check before the app depends on the artifact. `models/*.joblib` stays git-ignored through P6: the P6 app only needs to load the artifact from the local filesystem, not from a public deployment. How the artifact reaches a deployed app (committed exception, release asset, or build step) is a separate concern owned by D-013 and Epic E7 (P7), not by P6.
 
 ## Imbalance Strategy
 
@@ -242,7 +246,8 @@ The MVP should include focused pytest coverage for high-risk project behavior:
 - Split checks: stratified train/calibration/test splits preserve the selected target distribution within a small tolerance.
 - Pipeline checks: preprocessing and model pipeline can fit on a small sample and produce valid probabilities.
 - Model-comparison checks: tree-based candidates can fit and produce probabilities, comparison outputs have metrics by model and split, selection is deterministic, and P5 code does not use calibration rows or reload/re-split data ad hoc.
-- Artifact checks: serialized model can be loaded locally and returns probabilities in `[0, 1]`.
+- Artifact checks: serialized model can be loaded locally and returns probabilities in `[0, 1]`, and saved metadata includes the feature order and the selected model identity.
+- App-facing checks: the input-to-DataFrame helper preserves the training feature order, input validation rejects missing/out-of-range values, and the app-facing prediction helper returns a probability in `[0, 1]` without launching the Streamlit runtime.
 
 Streamlit-specific smoke tests should be considered after the MVP app exists.
 
