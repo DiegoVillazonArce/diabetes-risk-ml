@@ -179,21 +179,45 @@ Primary metrics:
 Secondary metrics:
 
 - Accuracy, with explicit explanation of why it can be misleading.
-- Brier score after probability calibration is introduced.
+- Brier score and log loss once probability calibration work (P8) begins.
 
-## Calibration Plan
+## Calibration and Threshold Analysis Plan (P8)
 
-Post-MVP calibration should compare:
+P8 compares uncalibrated, sigmoid (Platt), and isotonic probabilities for the frozen D-016 `HistGradientBoostingClassifier`. The calibration split has remained untouched since P3 and holds 25,368 rows at the preserved ~13.9% prevalence (~3,535 positives), enough calibration data for isotonic to be a serious candidate alongside sigmoid. The comparison can legitimately end with `calibration_method = none` -- retaining the uncalibrated output -- if no method qualifies under the pre-declared criteria; US-0607 then ships the version-2 artifact without a calibrator and the app keeps its uncalibrated wording.
 
-- Uncalibrated probabilities.
-- Sigmoid / Platt calibration.
-- Isotonic calibration if enough calibration data is available.
+### Leakage-Safe Evaluation Protocol
 
-Evaluation:
+1. Train the selected `HistGradientBoostingClassifier` (D-016) on the train split only.
+2. Freeze the base model: no refit, retuning, or reselection anywhere in P8.
+3. Score the calibration split with the frozen model to obtain the uncalibrated baseline.
+4. Apply stratified five-fold cross-fitting within the calibration split.
+5. For each method, sigmoid and isotonic: fit the calibrator on four folds, predict the held-out fold, and combine the held-out predictions into complete out-of-fold calibrated probabilities.
+6. Compare both methods and the uncalibrated baseline exclusively on those out-of-fold predictions, applying the operationalized criteria below.
+7. Select the calibration method -- sigmoid, isotonic, or none -- and resolve D-018; no test data participates.
+8. Analyze thresholds exclusively on the selected contract's out-of-fold probabilities.
+9. Freeze the threshold scenarios and resolve D-019.
+10. Refit the selected calibrator using the entire calibration split (skipped when `none` is selected; the per-fold calibrators are discarded either way).
+11. Run the official P8 test evaluation of the frozen contract: one recorded evaluation, performed only after D-018 and D-019 are frozen. Test participates in no P8 decision; later runs (deterministic artifact regeneration, regression tests, full-suite repeats, deployment verification) may only repeat this evaluation as a deterministic regression check.
+12. Record the official results; never select or modify the method or a threshold after observing them.
 
-- Reliability diagram.
-- Brier score.
-- Before/after probability interpretation.
+The cross-fitting operates on the frozen base model's output scores: the five folds partition the calibration split for calibrator fitting and out-of-fold prediction only, and no calibration row is ever used to retrain the `HistGradientBoostingClassifier` itself. Train and test rows are never used to fit a calibrator.
+
+### Selection Criteria (D-018, operationalized and pre-declared)
+
+Fixed during this refinement (2026-07-11), before any out-of-fold result exists, so selection cannot be tuned after peeking. All score comparisons use the out-of-fold predictions for the 25,368 calibration rows with paired differences and a fixed-seed bootstrap: 10,000 resamples of the calibration rows, with percentile 95% confidence intervals of the mean paired per-row score difference. The paired difference is defined per calibration row as `delta_i = loss_candidate_i - loss_reference_i`, where the reference is the uncalibrated baseline in the adoption rule and the other method in the pairwise choice. A candidate improves its reference only if the upper limit of the 95% confidence interval of the mean `delta` is below zero; between methods, the lower-loss method is superior when the interval excludes zero in the corresponding direction. Log loss uses exactly the same convention.
+
+1. **Adoption rule against the uncalibrated baseline.** A calibration method is adoptable only if the upper limit of the 95% paired-bootstrap confidence interval of its Brier `delta` against the uncalibrated baseline is below zero. If neither sigmoid nor isotonic is adoptable, `calibration_method = none` is selected and the uncalibrated output is retained.
+2. **Choice between two adoptable methods.** Prefer the method the paired-bootstrap Brier rule declares superior (interval excluding zero in its favor); if that interval includes zero, apply the identical rule to log loss as the tie-break; if that interval also includes zero, the methods are practically equivalent by this definition and sigmoid is selected for simplicity and strict ranking preservation.
+3. **Ranking-preservation guard.** The selected method must not reduce out-of-fold ROC-AUC or PR-AUC by more than 0.005 absolute versus the uncalibrated baseline; a larger drop disqualifies it (the other method is considered if it passes, otherwise `none`). The 0.005 bound is a project-defined ranking-preservation guardrail fixed before observing P8 results, not a clinical or statistical standard; at the D-016 baseline levels it tolerates roughly a 0.6% relative drop in ROC-AUC and a 1.2% relative drop in PR-AUC, small enough to catch a relevant degradation without rejecting isotonic over minor ties.
+4. **Reliability diagrams are visual diagnostics only**, reported for the baseline and both methods; they are never a subjective pass/fail criterion.
+
+ECE may be mentioned as a secondary descriptive metric, but not as a selection criterion on its own, because it depends on the binning choice.
+
+### Threshold Analysis Rules (D-019)
+
+- Precision-recall curves and threshold tables (positive-class recall, precision, F1, false-positive and false-negative counts, confusion matrices) are computed from the out-of-fold probabilities of the D-018-selected probability contract on the calibration split only.
+- Probability estimation stays explicitly separate from any decision layer: the app displays a probability with no threshold, and introducing decision labels would require an explicit, justified D-019 resolution -- it is not assumed.
+- No threshold may be presented as a validated screening or diagnostic rule, and the analysis makes no clinical claims; the trade-offs are model behavior, not medical guidance.
 
 ## Explainability Plan
 

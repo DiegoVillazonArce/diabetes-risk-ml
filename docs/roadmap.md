@@ -53,7 +53,7 @@ Advanced post-MVP features include calibration depth, SHAP polish, model scenari
 | P5 | Model Comparison and Selection | Compare candidate models using appropriate imbalanced classification metrics. | Yes | Done |
 | P6 | Streamlit MVP | Serve a trained model for individual prediction with clear disclaimers. | Yes | Done |
 | P7 | MVP Documentation and Deployment | Prepare README, run instructions, tests, artifact notes, and first public deployment. | Yes | Done |
-| P8 | Probability Calibration and Threshold Analysis | Improve probability honesty and explain decision threshold trade-offs. | No | Planned |
+| P8 | Probability Calibration and Threshold Analysis | Improve probability honesty and explain decision threshold trade-offs. | No | Ready |
 | P9 | Explainability with SHAP | Add global and local model explanations with non-causal framing. | No | Future |
 | P10 | Model Scenario Explorer | Add carefully framed what-if simulations for selected modifiable inputs. | No | Future |
 | P11 | Batch Prediction Workflow | Add CSV upload, schema validation, templates, and downloadable predictions. | No | Future |
@@ -68,6 +68,7 @@ These tracks should be refined as the project moves through the roadmap:
 - **Data acquisition:** document manual Kaggle download instructions first; consider an optional Kaggle API script later because automated download requires user credentials.
 - **Model artifacts:** use a clear serialization policy before deployment; `joblib` is the practical MVP default, while safer formats such as `skops` may be evaluated before final packaging.
 - **Testing:** begin with pytest coverage for data validation, split reproducibility, pipeline prediction behavior, and artifact loading; add app smoke tests after the Streamlit MVP exists.
+- **Continuous integration:** not yet implemented; recorded as a candidate for the next implementation increment (P8) -- running the pytest suite automatically on pushes would keep the artifact-contract and split-leakage guards from regressing silently. No CI files are added during planning.
 
 ## Definition of Done
 
