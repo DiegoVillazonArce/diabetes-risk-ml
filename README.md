@@ -6,7 +6,7 @@ Machine Learning app to estimate self-reported diabetes/prediabetes risk using B
 
 ## Current Status
 
-Data preparation (P3), baseline modeling (P4), model comparison/selection (P5), and the local Streamlit MVP (P6) are complete: the selected `HistGradientBoostingClassifier` (decision D-016) is trained offline through `src/artifacts.py`, and `app/streamlit_app.py` serves single-case educational risk predictions from that artifact. MVP documentation (P7) is complete: the run instructions below have been validated from a clean environment, and the artifact-distribution decision is resolved (D-013: the official model artifact is version-controlled and ships with the repository). The next step is the first public Streamlit Community Cloud deployment (US-0703).
+The MVP lifecycle through public deployment (P0-P7) is complete. The selected `HistGradientBoostingClassifier` (decision D-016) is trained offline through `src/artifacts.py`; the official artifact ships with the repository under the controlled D-013 Git exception; and `app/streamlit_app.py` serves single-case educational risk predictions without training, downloading a model, or reading the raw CSV at runtime. The app is live at [brfss-diabetes-risk-estimator.streamlit.app](https://brfss-diabetes-risk-estimator.streamlit.app/). Public startup, form rendering, artifact loading, disclaimer visibility, exact-age conversion, and all four deployment reference profiles are verified. P8, probability calibration and threshold analysis, is planned next.
 
 ## Run It Locally
 
@@ -102,7 +102,7 @@ python -c "from src.artifacts import load_artifact; print(load_artifact()['metad
 
 ## Deployment
 
-The MVP targets Streamlit Community Cloud: entry point `app/streamlit_app.py`, Python 3.12 (the platform default), dependencies installed from the same pinned `requirements.txt`, and the model artifact delivered inside the repository per D-013 — the deployed app performs no training, no model download, and no CSV access. The first public deployment (US-0703) has not happened yet; the public URL will be recorded here once the deployment is live and verified.
+The MVP is deployed on Streamlit Community Cloud at [https://brfss-diabetes-risk-estimator.streamlit.app/](https://brfss-diabetes-risk-estimator.streamlit.app/). The deployment uses branch `main`, entry point `app/streamlit_app.py`, Python 3.12, the pinned `requirements.txt`, and the version-controlled official artifact selected by D-013. The deployed app performs no training, model download, or CSV access. Verification confirmed successful startup, artifact loading, the complete 21-feature form, the visible medical disclaimer, and all four reference profiles with exact displayed outputs of 0.3%, 60.0%, 70.0%, and 79.9% and their expected age-group messages.
 
 ## Project Structure
 
