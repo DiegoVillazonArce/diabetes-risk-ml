@@ -4,7 +4,8 @@ These tests never launch a Streamlit server. They confirm the app can be
 imported without side effects (no artifact load, no training, no data
 access), that it stays a pure local consumer of the project's own artifact
 (no training code, no remote artifact sources or deployment secrets --
-artifact distribution for deployment is D-013, owned by P7), and -- via
+D-013 resolved artifact distribution as a controlled Git exception, so the
+deployed app loads the same version-controlled local file), and -- via
 Streamlit's built-in headless `AppTest` harness -- that the prediction
 workflow renders and produces a valid educational risk percentage from a
 temporary artifact, with clear errors for missing or corrupt artifacts.
@@ -148,8 +149,9 @@ def test_artifact_loading_is_local_only():
     # Durable policy from the ML analysis plan (independent of the P6/P7
     # phase boundary): the app and the artifact helpers only load artifacts
     # produced by this project's offline pipeline -- never from remote
-    # sources -- and read no deployment secrets. How an artifact reaches a
-    # deployed app is D-013 and may legitimately add deployment files in P7.
+    # sources -- and read no deployment secrets. D-013 resolved distribution
+    # with a controlled Git exception (the official artifact ships in the
+    # repository), so local-only loading holds in deployment as well.
     app_source = APP_PATH.read_text(encoding="utf-8")
     artifacts_source = inspect.getsource(artifacts)
     for source in (app_source, artifacts_source):

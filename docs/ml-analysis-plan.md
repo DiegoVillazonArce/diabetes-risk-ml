@@ -150,7 +150,9 @@ Initial plan:
 - Do not load model artifacts from untrusted external sources.
 - Evaluate `skops` before final portfolio packaging if safer model serialization becomes a priority.
 
-Per D-017, serialization happens once, at the start of P6, using the D-016 selected model and the D-010 `joblib` format, paired with a local load/predict check before the app depends on the artifact. `models/*.joblib` stays git-ignored through P6: the P6 app only needs to load the artifact from the local filesystem, not from a public deployment. How the artifact reaches a deployed app (committed exception, release asset, or build step) is a separate concern owned by D-013 and Epic E7 (P7), not by P6.
+Per D-017, serialization happens once, at the start of P6, using the D-016 selected model and the D-010 `joblib` format, paired with a local load/predict check before the app depends on the artifact. `models/*.joblib` stayed git-ignored through P6: the P6 app only needed to load the artifact from the local filesystem, not from a public deployment.
+
+P7 resolved how the artifact reaches a deployed app: per D-013, the official artifact `models/diabetes_risk_model.joblib` (~263 KB) is version-controlled as a controlled Git exception, while all other files under `models/` remain git-ignored. The deployed app therefore loads the same local repository file with no network access, no runtime training, and no need for the raw CSV at serving time; the formal three-alternative comparison behind that choice is recorded in `docs/decisions.md`.
 
 ## Imbalance Strategy
 

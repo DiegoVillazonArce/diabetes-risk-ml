@@ -225,3 +225,6 @@ data/processed/*.csv
 data/processed/*.parquet
 models/*.joblib
 models/*.pkl
+# D-013 controlled exception: only the official deployment artifact is
+# version-controlled; temporary and alternative artifacts stay ignored.
+!models/diabetes_risk_model.joblib

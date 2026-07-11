@@ -21,8 +21,8 @@ data/
 
 ## Who Needs the Raw Dataset
 
-- **Streamlit app users: nobody needs it.** The app only loads serialized model artifacts produced by the offline training pipeline (decision D-007). It never reads the raw CSV.
-- **Reproducing EDA or training: required.** The raw CSV is needed only to rerun the exploratory data analysis notebooks and the offline training pipeline.
+- **Streamlit app users: nobody needs it.** The app only loads the serialized model artifact produced by the offline training pipeline (decision D-007), which ships with the repository at `models/diabetes_risk_model.joblib` (decision D-013). It never reads the raw CSV.
+- **Reproducing EDA or training: required.** The raw CSV is needed only to rerun the exploratory data analysis notebooks and the offline training pipeline that regenerates the model artifact.
 
 ## How to Obtain the Data
 

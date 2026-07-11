@@ -315,9 +315,9 @@ This file tracks short planning and development iterations. It is intentionally 
 
 ## Next Iteration Planning: P7 MVP Documentation and Deployment
 
-**Date:** 2026-07-10
+**Date:** 2026-07-10 to 2026-07-11
 
-**Status:** Ready for implementation
+**Status:** Ready for commit and external deployment -- local scope complete; public deployment pending
 
 **Goal:** Turn the completed P6 local MVP into a reviewer-reproducible and publicly accessible deployment by validating the run documentation, resolving D-013 from evidence, implementing only the selected artifact-distribution policy, and verifying the public app without expanding the modeling scope.
 
@@ -346,13 +346,35 @@ Throughout P7, keep the calibration split untouched. Do not add calibration, thr
 - Added explicit P7 scope guardrails and preserved the calibration split for P8.
 - Corrected only planning ambiguities about the timing of D-013 and the ownership of calibration and threshold analysis; no deployment implementation was performed.
 
+### Completed (Local Scope, 2026-07-11)
+
+- US-0701 (Review): rewrote the README into a validated "Run It Locally" sequence -- Python 3.12 venv creation/activation with PowerShell and macOS/Linux commands, `python -m pip install -r requirements.txt`, the exact CSV path with a link to `data/README.md`, `python -m src.artifacts`, `python -m pytest tests -v -p no:cacheprovider`, and `python -m streamlit run app/streamlit_app.py`, all through the same interpreter, with an explicit explanation of why mixing the global Python with `.venv` breaks artifact loading, plus a troubleshooting section that maps recognizable load/validation failures to the rebuild-and-regenerate fix instead of validation bypasses.
+- Clean-environment validation: on an isolated copy of the repository with a fresh python.org CPython 3.12.1 venv (different installation from the development 3.12.7 base), the pinned install resolved with `pip check` clean; the committed-artifact journey worked without the CSV (artifact loads, smoke probability identical, 143 tests passed with exactly the 3 documented raw-data skips); after placing the CSV per the instructions, `python -m src.artifacts` reproduced the D-016 metrics and 0.0254 smoke probability, the full suite passed 146/146, and the app served HTTP 200 headlessly. A true `git clone` from GitHub remains pending because the P7 changes are not yet committed.
+- US-0702 (Review): performed the formal D-013 comparison against current official documentation (Streamlit Community Cloud dependencies/file-organization/deploy pages, scikit-learn model persistence, GitHub file-size limits; consulted 2026-07-11) and accepted the controlled Git exception; the full criteria table lives in `docs/decisions.md`. Key evidence: Community Cloud copies repository files and offers no pre-runtime build or download hook; a Release asset would force an in-app runtime download that the local-only loading policy forbids; build-time generation is impossible on the platform and would need the git-ignored CSV.
+- D-013 implementation: `.gitignore` now excepts exactly `models/diabetes_risk_model.joblib` (temporary and alternative artifacts stay ignored); the official artifact was regenerated with Python 3.12 and the pinned versions and fully verified (metadata identity and package versions, feature order in metadata and the fitted model, classes `[0, 1]`, D-016 hyperparameters, reproduced selection metrics PR-AUC 0.423065 / ROC-AUC 0.826955, smoke probability 0.025419); docstrings, comments, and tests that assumed the artifact is always git-ignored were updated, including a new test pinning the exception to exactly the official filename. The artifact is committed-ready but intentionally not staged: staging, commits, and pushes await explicit authorization.
+- Reference profiles (US-0703 prerequisite): `tests/reference_profiles.py` records four synthetic profiles with exact 21-feature inputs, exact UI ages at BRFSS group boundaries (24 -> 1, 80 -> 13, 70 -> 11, 65 -> 10), official-artifact probabilities, and expected displays 0.3%, 60.0%, 70.0%, and 79.9% (the P6 manual observations guided the targets; their inputs were reconstructed, recorded, and verified rather than assumed). A documented +/-0.0002 probability tolerance stays below the 0.00025 display-rounding margin so tolerance-accepted values always render the recorded display. `tests/test_reference_profiles.py` adds 31 tests: contract checks, exact-age conversion, recomputation against the official artifact, an anti-tampering check that the artifact remains the untampered D-016 configuration reproducing its selection evidence, and end-to-end headless AppTest runs that drive all 21 form widgets per profile and assert the exact displayed percentage. `python -m tests.reference_profiles` prints the manual checklist for the public smoke tests.
+- Post-review hardening: the official D-013 artifact is now a mandatory test dependency rather than a conditional skip, so omitting the currently untracked `.joblib` makes the deployment-reference suite fail with explicit commit/regeneration guidance. `validate_artifact_bundle()` now treats package provenance as a real contract: it requires the exact metadata layout, Python 3.12 at major/minor level, exact NumPy/pandas/scikit-learn/joblib pins, and a matching runtime; tests also pin those constants back to `requirements.txt` and reject malformed metadata, false package/Python versions, and incompatible runtimes. The two checked backlog tasks that mixed completed local work with pending public work were narrowed to their locally verified halves; public artifact/profile checks remain unchecked under US-0703.
+- Streamlit Community Cloud readiness: entry point `app/streamlit_app.py` tracked with matching case; all paths `pathlib`-based (forward slashes; absolute paths derived from module location, compatible with the platform's repository-root `streamlit run`); `requirements.txt` is the only dependency file so the platform will select it; Python 3.12 is the platform default; no secrets and no `.streamlit/` directory exist; no `packages.txt` needed. The heavier EDA/notebook pins slow the one-time cloud install but keep a single reproducible environment (documented trade-off; no second requirements file).
+- Verification battery: `python -m pytest tests -v -p no:cacheprovider` passed 153/153 (the previous 146 plus 7 package-provenance/runtime hardening cases) with a `--basetemp` outside the repository; the targeted negative check also proved that an absent official artifact now fails instead of skipping. `python -m compileall src app tests` OK; `git diff --check` clean; local Streamlit serves HTTP 200 from the main repository; nothing staged, no new commits, no CSV or secrets added.
+- Scope guardrails held: no calibration or threshold work (the calibration split remains untouched -- enforced by existing tests), no experimental retraining or new model comparisons (the D-016 regeneration is required by the D-013 policy and reproduces the selection evidence exactly), no SHAP, fairness analysis, batch prediction, scenario exploration, authentication, input persistence, or analytics.
+
+### Remaining for P7 Closure (Blocked at the External Gate)
+
+All remaining work requires GitHub push access, authenticated Streamlit Community Cloud access, and explicit authorization to stage, commit, push, and deploy:
+
+1. Stage and commit the P7 changes, including the official artifact per D-013, and push to `DiegoVillazonArce/diabetes-risk-ml`.
+2. Re-run the clean-clone validation from the pushed repository (the local validation used an isolated working-tree copy).
+3. Deploy on Streamlit Community Cloud: repository `DiegoVillazonArce/diabetes-risk-ml`, branch `main`, entry point `app/streamlit_app.py`, Python 3.12; review installation and startup logs; confirm the artifact is found, validated, and loaded.
+4. Run the public smoke tests with the recorded reference profiles (`python -m tests.reference_profiles` prints the checklist): all 21 features, boundary-age conversion, expected displays within the documented tolerance, controlled missing/invalid-artifact error check without leaving the app broken, disclaimer visibility, and confirmation that no CSV, secrets, or user inputs are published, logged, or persisted.
+5. Add the verified public URL to the README, mark US-0701/US-0702/US-0703 and the remaining candidate tasks Done, set roadmap P7 to Done, rename this entry to "Iteration 7: MVP Documentation and Deployment", and set its status to Completed.
+
 ### Decisions Added
 
-- None. D-013 remains Pending during this refinement and must be resolved from the planned comparison before the first public deployment in P7.
+- During the refinement (2026-07-10): none; D-013 stayed Pending until the planned comparison could run.
+- During implementation (2026-07-11): D-013 resolved and Accepted -- the official model artifact is distributed as a controlled Git exception (`models/diabetes_risk_model.joblib` version-controlled; all other artifacts under `models/` remain ignored), selected from the formal three-alternative comparison recorded in `docs/decisions.md`.
 
 ### Follow-Up
 
-- Start with US-0701 and validate the full documented workflow from a clean clone or environment before evaluating artifact distribution.
-- Resolve D-013 only after the three alternatives have been compared with the documented criteria; then implement only the selected path.
+- Complete the deployment gate items above once staging, pushing, and platform access are explicitly authorized; do not mark P7 or any E7 story Done before the public URL is live and verified.
 - Preserve the calibration split for P8 calibration and threshold analysis, and leave SHAP for P9.
-- Do not mark P7 or any E7 story Done until the selected distribution policy, public deployment, smoke tests, and final README URL are implemented and verified.
+- After P7 closure, refine P8 (probability calibration and threshold analysis) before implementation; it stays high-level until then.

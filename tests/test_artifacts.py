@@ -61,9 +61,33 @@ def test_bundle_metadata_records_the_serving_contract(bundle):
     assert set(metadata["metrics"]) == {"train", "test"}
     for split in ("train", "test"):
         assert set(metadata["metrics"][split]) == set(modeling.METRIC_KEYS)
-    for package in ("python", "numpy", "pandas", "scikit-learn", "joblib"):
-        assert package in metadata["package_versions"]
+    package_versions = metadata["package_versions"]
+    assert set(package_versions) == {
+        "python",
+        *artifacts.ARTIFACT_PACKAGE_VERSION_PINS,
+    }
+    assert tuple(map(int, package_versions["python"].split(".")[:2])) == (
+        artifacts.ARTIFACT_PYTHON_MAJOR_MINOR
+    )
+    assert {
+        package: package_versions[package]
+        for package in artifacts.ARTIFACT_PACKAGE_VERSION_PINS
+    } == artifacts.ARTIFACT_PACKAGE_VERSION_PINS
     assert metadata["created_at"]
+
+
+def test_artifact_package_pins_match_requirements_txt():
+    requirements = (data.PROJECT_ROOT / "requirements.txt").read_text(
+        encoding="utf-8"
+    )
+    requirement_pins = {}
+    for line in requirements.splitlines():
+        package, separator, version = line.partition("==")
+        if separator:
+            requirement_pins[package.strip()] = version.strip()
+
+    for package, expected in artifacts.ARTIFACT_PACKAGE_VERSION_PINS.items():
+        assert requirement_pins[package] == expected
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +189,7 @@ def test_load_corrupt_artifact_raises_clear_error(tmp_path, payload):
         artifacts.load_artifact(corrupt)
 
 
-def test_save_requires_the_gitignored_joblib_extension(bundle, tmp_path):
+def test_save_requires_the_d010_joblib_extension(bundle, tmp_path):
     with pytest.raises(ValueError, match="joblib"):
         artifacts.save_artifact(bundle, tmp_path / "artifact.pkl")
 
@@ -243,6 +267,32 @@ def break_model_class_mismatch(bundle):
     return bundle
 
 
+def break_package_versions_not_a_dict(bundle):
+    bundle["metadata"]["package_versions"] = "self-declared"
+    return bundle
+
+
+def break_missing_package_version(bundle):
+    package_versions = dict(bundle["metadata"]["package_versions"])
+    package_versions.pop("joblib")
+    bundle["metadata"]["package_versions"] = package_versions
+    return bundle
+
+
+def break_wrong_package_version(bundle):
+    package_versions = dict(bundle["metadata"]["package_versions"])
+    package_versions["scikit-learn"] = "0.0.0"
+    bundle["metadata"]["package_versions"] = package_versions
+    return bundle
+
+
+def break_wrong_python_version(bundle):
+    package_versions = dict(bundle["metadata"]["package_versions"])
+    package_versions["python"] = "3.11.9"
+    bundle["metadata"]["package_versions"] = package_versions
+    return bundle
+
+
 @pytest.mark.parametrize(
     "breaker",
     [
@@ -258,6 +308,10 @@ def break_model_class_mismatch(bundle):
         break_wrong_target,
         break_model_without_predict_proba,
         break_model_class_mismatch,
+        break_package_versions_not_a_dict,
+        break_missing_package_version,
+        break_wrong_package_version,
+        break_wrong_python_version,
     ],
 )
 def test_validation_rejects_incompatible_bundles(bundle, breaker):
@@ -343,6 +397,24 @@ def test_validation_rejects_non_default_hyperparameters(bundle):
 
     with pytest.raises(ValueError, match="hyperparameters"):
         artifacts.validate_artifact_bundle(broken)
+
+
+@pytest.mark.parametrize(
+    ("package", "incompatible_version", "message"),
+    [
+        ("python", "3.11.9", "Runtime Python"),
+        ("scikit-learn", "0.0.0", "Runtime scikit-learn"),
+    ],
+)
+def test_validation_rejects_incompatible_runtime_versions(
+    bundle, monkeypatch, package, incompatible_version, message
+):
+    runtime_versions = artifacts._package_versions()
+    runtime_versions[package] = incompatible_version
+    monkeypatch.setattr(artifacts, "_package_versions", lambda: runtime_versions)
+
+    with pytest.raises(ValueError, match=message):
+        artifacts.validate_artifact_bundle(bundle)
 
 
 # ---------------------------------------------------------------------------
@@ -437,17 +509,35 @@ def test_artifacts_module_does_not_reload_or_resplit_data():
         assert forbidden not in source
 
 
-def test_default_artifact_path_is_gitignored_under_models():
+def test_default_artifact_path_follows_the_d013_distribution_policy():
+    # D-013 (P7): artifacts under models/ are git-ignored by default, and the
+    # official deployment artifact is the one controlled exception, so it can
+    # be version-controlled and ship with the repository.
     assert artifacts.DEFAULT_ARTIFACT_PATH.parent == data.PROJECT_ROOT / "models"
     assert artifacts.DEFAULT_ARTIFACT_PATH.suffix == ".joblib"
-    gitignore = (data.PROJECT_ROOT / ".gitignore").read_text(encoding="utf-8")
-    assert "models/*.joblib" in gitignore
+    gitignore_lines = (
+        (data.PROJECT_ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+    )
+    assert "models/*.joblib" in gitignore_lines
+    assert f"!models/{artifacts.DEFAULT_ARTIFACT_PATH.name}" in gitignore_lines
+    # The exception is exact-name only: the atomic-save temporary sibling
+    # (and any other artifact name) must not match it.
+    temp_name = artifacts.DEFAULT_ARTIFACT_PATH.with_name(
+        artifacts.DEFAULT_ARTIFACT_PATH.stem + ".tmp.joblib"
+    ).name
+    assert f"!models/{temp_name}" not in gitignore_lines
+    exceptions = [
+        line for line in gitignore_lines if line.startswith("!models/")
+    ]
+    assert exceptions == [f"!models/{artifacts.DEFAULT_ARTIFACT_PATH.name}"]
 
 
 def test_save_rejects_repository_paths_outside_models(bundle):
-    # Only models/*.joblib is git-ignored, so a save into any other
-    # repository location must be refused instead of silently unignored
-    # (P6 review finding). Paths outside the repository stay allowed --
+    # models/ is the only directory where artifacts are managed by policy
+    # (D-013: the official artifact is the version-controlled exception,
+    # everything else there is git-ignored), so a save into any other
+    # repository location must be refused instead of creating an unmanaged
+    # file (P6 review finding). Paths outside the repository stay allowed --
     # tests rely on pytest tmp dirs.
     for bad_path in (
         data.PROJECT_ROOT / "artifact.joblib",

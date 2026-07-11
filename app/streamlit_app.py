@@ -11,10 +11,11 @@ disclaimer (US-0501, US-0502). Model-feature bounds come from the P3
 to the model's BRFSS age-group code before `src.artifacts` re-validates and
 scores the case.
 
-Run from the project root:
+Run from the project root (the artifact ships with the repository per
+D-013; regenerate it only to reproduce training):
 
-    python -m src.artifacts              # generate the local model artifact
-    streamlit run app/streamlit_app.py
+    python -m src.artifacts                       # optional: retrain the artifact
+    python -m streamlit run app/streamlit_app.py
 """
 
 import numbers

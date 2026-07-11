@@ -23,9 +23,10 @@ testable without the Streamlit runtime. No custom decision threshold,
 calibration, or probability post-processing happens here; those belong to
 P8.
 
-Artifacts default to `models/diabetes_risk_model.joblib`, which stays
-git-ignored; how an artifact reaches a deployed app is owned by the pending
-D-013 (P7), not by this module.
+Artifacts default to `models/diabetes_risk_model.joblib`. Per D-013
+(P7), that official artifact is version-controlled as a controlled Git
+exception so deployment ships it with the repository; every other artifact
+under `models/` (temporary or alternative files) stays git-ignored.
 
 Generate the local artifact from the project root with:
 
@@ -73,8 +74,23 @@ SELECTION_DECISION = "D-016"
 # at load time instead of serving through an outdated contract.
 ARTIFACT_SCHEMA_VERSION = 1
 
-# Default local artifact location; `models/*.joblib` is git-ignored (D-013
-# still owns how an artifact would reach a deployed app).
+# The persisted estimator is a Python object whose compatibility depends on
+# the training/runtime environment. D-013 therefore makes these versions part
+# of the serving contract, not merely informational metadata. Python patch
+# versions may differ (the clean-environment check deliberately used 3.12.1
+# for an artifact produced on 3.12.7), while the model-facing libraries stay
+# on the exact requirements.txt pins.
+ARTIFACT_PYTHON_MAJOR_MINOR = (3, 12)
+ARTIFACT_PACKAGE_VERSION_PINS = {
+    "numpy": "2.2.6",
+    "pandas": "2.3.1",
+    "scikit-learn": "1.7.1",
+    "joblib": "1.5.1",
+}
+
+# Default artifact location. This exact file is the D-013 controlled Git
+# exception (version-controlled for deployment); all other `models/*.joblib`
+# files remain git-ignored.
 DEFAULT_ARTIFACT_PATH = PROJECT_ROOT / "models" / "diabetes_risk_model.joblib"
 
 REQUIRED_METADATA_KEYS = (
@@ -101,6 +117,83 @@ def _package_versions() -> dict[str, str]:
         "scikit-learn": sklearn.__version__,
         "joblib": joblib.__version__,
     }
+
+
+def _python_major_minor(version: object, *, source: str) -> tuple[int, int]:
+    """Parse a recorded/runtime Python version for the 3.12 contract."""
+    if not isinstance(version, str):
+        raise ValueError(
+            f"{source} Python version must be a dotted string; got {version!r}."
+        )
+    parts = version.split(".")
+    try:
+        if len(parts) < 2:
+            raise ValueError
+        return int(parts[0]), int(parts[1])
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            f"{source} Python version must be a dotted string; got {version!r}."
+        ) from error
+
+
+def _validate_package_versions(package_versions: object) -> None:
+    """Enforce the D-013 artifact provenance and runtime compatibility."""
+    if not isinstance(package_versions, dict):
+        raise ValueError(
+            "Artifact package_versions metadata must be a dict; "
+            f"got {type(package_versions).__name__}."
+        )
+
+    expected_keys = {"python", *ARTIFACT_PACKAGE_VERSION_PINS}
+    actual_keys = set(package_versions)
+    if actual_keys != expected_keys:
+        missing = sorted(expected_keys - actual_keys, key=repr)
+        unexpected = sorted(actual_keys - expected_keys, key=repr)
+        raise ValueError(
+            "Artifact package_versions keys do not match the D-013 "
+            f"provenance contract (missing={missing}, unexpected={unexpected}); "
+            "regenerate the artifact with 'python -m src.artifacts'."
+        )
+
+    recorded_python = _python_major_minor(
+        package_versions["python"], source="Artifact"
+    )
+    if recorded_python != ARTIFACT_PYTHON_MAJOR_MINOR:
+        required = ".".join(map(str, ARTIFACT_PYTHON_MAJOR_MINOR))
+        raise ValueError(
+            f"Artifact Python version {package_versions['python']!r} is not "
+            f"compatible with the required Python {required}.x environment; "
+            "regenerate the artifact with 'python -m src.artifacts'."
+        )
+
+    for package, expected in ARTIFACT_PACKAGE_VERSION_PINS.items():
+        recorded = package_versions[package]
+        if recorded != expected:
+            raise ValueError(
+                f"Artifact {package} version {recorded!r} does not match the "
+                f"required requirements.txt pin {expected!r}; regenerate the "
+                "artifact with 'python -m src.artifacts'."
+            )
+
+    runtime_versions = _package_versions()
+    runtime_python = _python_major_minor(
+        runtime_versions["python"], source="Runtime"
+    )
+    if runtime_python != ARTIFACT_PYTHON_MAJOR_MINOR:
+        required = ".".join(map(str, ARTIFACT_PYTHON_MAJOR_MINOR))
+        raise ValueError(
+            f"Runtime Python version {runtime_versions['python']!r} is not "
+            f"compatible with the required Python {required}.x environment; "
+            "recreate the environment from requirements.txt."
+        )
+    for package, expected in ARTIFACT_PACKAGE_VERSION_PINS.items():
+        runtime = runtime_versions[package]
+        if runtime != expected:
+            raise ValueError(
+                f"Runtime {package} version {runtime!r} does not match the "
+                f"required requirements.txt pin {expected!r}; recreate the "
+                "environment from requirements.txt."
+            )
 
 
 def build_artifact_bundle(
@@ -148,7 +241,8 @@ def validate_artifact_bundle(bundle: object) -> None:
     Rejects anything the app could not serve safely. Structure checks: dict
     layout with 'model' and 'metadata', required metadata keys, schema
     version, model name, feature-column contract (exact names and order),
-    and target name. The model object is then checked directly rather than
+    target name, and D-013 package provenance/runtime compatibility. The
+    model object is then checked directly rather than
     trusting self-declared metadata: it must actually be a fitted D-016
     `HistGradientBoostingClassifier` whose fitted feature order matches the
     current contract, whose classes are exactly [0, 1], and whose
@@ -174,6 +268,8 @@ def validate_artifact_bundle(bundle: object) -> None:
     missing_keys = [key for key in REQUIRED_METADATA_KEYS if key not in metadata]
     if missing_keys:
         raise ValueError(f"Artifact metadata is missing required keys: {missing_keys}.")
+
+    _validate_package_versions(metadata["package_versions"])
 
     if metadata["schema_version"] != ARTIFACT_SCHEMA_VERSION:
         raise ValueError(
@@ -249,12 +345,14 @@ def save_artifact(bundle: dict, path: Path | str | None = None) -> Path:
     """Serialize a validated bundle with joblib (D-010) and return the path.
 
     Every artifact must use the '.joblib' extension, and a path inside the
-    repository must point directly into `models/`, because only
-    `models/*.joblib` is git-ignored; locations outside the repository (for
-    example pytest tmp dirs) are the caller's responsibility. The write is
-    atomic: the bundle is dumped to a temporary sibling first and moved
-    into place, so an interrupted save cannot leave a truncated artifact
-    behind.
+    repository must point directly into `models/`: that is the only
+    directory where artifacts are managed by policy -- the official
+    artifact is the D-013 version-controlled exception and everything else
+    there is git-ignored, so a save anywhere else in the repository would
+    create an unmanaged file. Locations outside the repository (for example
+    pytest tmp dirs) are the caller's responsibility. The write is atomic:
+    the bundle is dumped to a temporary sibling first and moved into place,
+    so an interrupted save cannot leave a truncated artifact behind.
     """
     validate_artifact_bundle(bundle)
     path = DEFAULT_ARTIFACT_PATH if path is None else Path(path)
@@ -267,8 +365,9 @@ def save_artifact(bundle: dict, path: Path | str | None = None) -> Path:
     if resolved.is_relative_to(PROJECT_ROOT) and resolved.parent != PROJECT_ROOT / "models":
         raise ValueError(
             "Artifact paths inside the repository must point directly into "
-            "'models/' so the 'models/*.joblib' gitignore rule covers them; "
-            f"got '{path}'."
+            "'models/', the only directory where artifacts are managed "
+            "(git-ignored by default, with the official artifact as the "
+            f"D-013 version-controlled exception); got '{path}'."
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     # The temporary sibling keeps the .joblib suffix so a crash leftover
@@ -283,8 +382,8 @@ def load_artifact(path: Path | str | None = None) -> dict:
     """Load and validate a local artifact bundle.
 
     Fails clearly in every unusable state: FileNotFoundError when the file
-    is absent, and ValueError (always carrying the regeneration command)
-    when the file cannot be deserialized or fails bundle validation.
+    is absent, and ValueError with regeneration or environment-rebuild
+    guidance when the file cannot be deserialized or fails bundle validation.
     """
     path = DEFAULT_ARTIFACT_PATH if path is None else Path(path)
     if not path.is_file():
