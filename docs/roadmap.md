@@ -68,7 +68,7 @@ These tracks should be refined as the project moves through the roadmap:
 - **Data acquisition:** document manual Kaggle download instructions first; consider an optional Kaggle API script later because automated download requires user credentials.
 - **Model artifacts:** use a clear serialization policy before deployment; `joblib` is the practical MVP default, while safer formats such as `skops` may be evaluated before final packaging.
 - **Testing:** begin with pytest coverage for data validation, split reproducibility, pipeline prediction behavior, and artifact loading; add app smoke tests after the Streamlit MVP exists.
-- **Continuous integration:** not yet implemented; recorded as a candidate for the next implementation increment (P8) -- running the pytest suite automatically on pushes would keep the artifact-contract and split-leakage guards from regressing silently. No CI files are added during planning.
+- **Continuous integration:** not yet implemented; retain it as a candidate for the next rolling-wave refinement (P9 or a dedicated quality increment). Running pytest automatically on pushes would protect the artifact-contract and split-leakage guards, but no CI files are pulled into P8.
 
 ## Definition of Done
 

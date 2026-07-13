@@ -1,4 +1,4 @@
-"""Model artifact contract and app-facing serving helpers (P6, Epic E5).
+"""Model artifact contract and app-facing serving helpers (P6/P8, Epics E5/E6).
 
 P6 (Streamlit MVP) is the first phase that persists a trained model: per
 D-017 the D-016 `HistGradientBoostingClassifier` is trained once at the
@@ -8,20 +8,22 @@ the app needs for safe, reproducible inference: exact feature order, target
 name, model identity, random seed, the P5-protocol metrics that back the
 D-016 selection, and package versions.
 
-Training goes through `src.data.prepare_data()` and the P4/P5 helpers in
-`src.modeling` only: the model fits on the train split, metrics are
-recomputed on train and test with the shared P5 metric protocol (the same
-fixed seed reproduces the D-016 evidence; this verifies the already selected
-model, it is not a new comparison round), and the calibration split is never
-read, staying reserved for P8 probability calibration.
+Training goes through `src.data.prepare_data()` and the existing modeling
+and P8 calibration contracts. The model fits on the train split only. P8
+selected `calibration_method = "none"` in D-018, so the schema-version-2
+bundle stores no calibrator and continues to serve the frozen model's raw
+positive-class probability. The bundle nevertheless records the selected
+contract's calibration-split evidence, official P8 test evaluation, frozen
+D-019 threshold scenarios, and package versions. The threshold scenarios
+are documentation only and are never applied by the serving path.
 
 This module also owns the app-facing serving path (US-0501, US-0503): input
 validation against the P3 `VALUE_RANGES` contract, assembly of a one-row
 frame in exact `FEATURE_COLUMNS` order, and positive-class probability
 prediction. It never imports Streamlit, so the whole serving path is
-testable without the Streamlit runtime. No custom decision threshold,
-calibration, or probability post-processing happens here; those belong to
-P8.
+testable without the Streamlit runtime. A fitted calibrator is used only
+when the validated artifact contract requires one; no custom decision
+threshold is applied.
 
 Artifacts default to `models/diabetes_risk_model.joblib`. Per D-013
 (P7), that official artifact is version-controlled as a controlled Git
@@ -45,7 +47,11 @@ import joblib
 import numpy as np
 import pandas as pd
 import sklearn
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.frozen import FrozenEstimator
+
+from src import calibration
 
 from src.data import (
     BINARY_FEATURES,
@@ -59,6 +65,7 @@ from src.data import (
     prepare_data,
 )
 from src.modeling import (
+    METRIC_KEYS,
     build_hist_gradient_boosting_candidate,
     evaluate_model,
     predict_positive_proba,
@@ -72,7 +79,7 @@ SELECTION_DECISION = "D-016"
 
 # Bump when the bundle layout changes, so stale local artifacts fail loudly
 # at load time instead of serving through an outdated contract.
-ARTIFACT_SCHEMA_VERSION = 1
+ARTIFACT_SCHEMA_VERSION = 2
 
 # The persisted estimator is a Python object whose compatibility depends on
 # the training/runtime environment. D-013 therefore makes these versions part
@@ -101,10 +108,26 @@ REQUIRED_METADATA_KEYS = (
     "feature_columns",
     "target",
     "random_seed",
+    "calibration_method",
+    "calibration_decision",
+    "calibration_protocol",
+    "threshold_policy_decision",
+    "threshold_scenarios",
     "metrics",
     "package_versions",
     "created_at",
 )
+
+CALIBRATION_PROTOCOL = {
+    "base_model_fit_split": "train",
+    "calibrator_fit_split": "calibration",
+    "selection_evaluation": "stratified_5_fold_out_of_fold",
+    "n_folds": calibration.N_CALIBRATION_FOLDS,
+    "score_representation": "decision_function",
+    "bootstrap_resamples": calibration.BOOTSTRAP_RESAMPLES,
+    "bootstrap_confidence": calibration.BOOTSTRAP_CONFIDENCE,
+    "random_seed": RANDOM_SEED,
+}
 
 
 def _package_versions() -> dict[str, str]:
@@ -201,16 +224,46 @@ def build_artifact_bundle(
     random_state: int = RANDOM_SEED,
     dataset_summary: dict | None = None,
 ) -> dict:
-    """Train the D-016 model and assemble the serializable artifact bundle.
+    """Train D-016 and assemble the selected schema-version-2 contract.
 
-    Fits `HistGradientBoostingClassifier` on the train split only, through
-    the P4/P5 `to_train_test_data` conversion so the calibration split is
-    never read, and records train/test metrics with the shared P5 metric
-    protocol as the artifact's selection evidence.
+    The base model fits on train only. The already accepted D-018 method is
+    then represented exactly: a final calibrator is fitted on all calibration
+    rows only when sigmoid/isotonic was selected, while ``none`` stores no
+    calibrator. D-018 is never recomputed here. The selected contract's
+    calibration evidence and deterministic official P8 test evaluation are
+    recorded as provenance, not used to alter either accepted decision.
     """
+    if random_state != RANDOM_SEED:
+        raise ValueError(
+            f"The accepted D-016/P8 artifact requires random_state={RANDOM_SEED}; "
+            f"got {random_state!r}."
+        )
     model_data = to_train_test_data(splits)
     model = build_hist_gradient_boosting_candidate(random_state=random_state)
     model.fit(model_data.X_train, model_data.y_train)
+
+    calibration_data = calibration.to_calibration_data(splits)
+    method = calibration.SELECTED_CALIBRATION_METHOD
+    final_calibrator = None
+    if method == calibration.NO_CALIBRATION:
+        calibration_probabilities = (
+            calibration.uncalibrated_calibration_probabilities(
+                model, calibration_data
+            )
+        )
+    else:
+        calibration_probabilities = calibration.cross_fit_out_of_fold(
+            model, calibration_data, method, random_state=random_state
+        )
+        final_calibrator = calibration.fit_final_calibrator(
+            model, calibration_data, method
+        )
+    official = calibration.official_test_evaluation(
+        splits,
+        model,
+        final_calibrator,
+        calibration.FROZEN_THRESHOLD_SCENARIOS,
+    )
 
     metadata: dict[str, object] = {
         "schema_version": ARTIFACT_SCHEMA_VERSION,
@@ -220,9 +273,30 @@ def build_artifact_bundle(
         "feature_columns": list(FEATURE_COLUMNS),
         "target": TARGET,
         "random_seed": random_state,
+        "calibration_method": method,
+        "calibration_decision": calibration.CALIBRATION_SELECTION_DECISION,
+        "calibration_protocol": dict(CALIBRATION_PROTOCOL),
+        "threshold_policy_decision": calibration.THRESHOLD_POLICY_DECISION,
+        "threshold_scenarios": dict(calibration.FROZEN_THRESHOLD_SCENARIOS),
         "metrics": {
-            "train": evaluate_model(model, model_data.X_train, model_data.y_train),
-            "test": evaluate_model(model, model_data.X_test, model_data.y_test),
+            "model_selection": {
+                "train": evaluate_model(
+                    model, model_data.X_train, model_data.y_train
+                ),
+                "test": evaluate_model(
+                    model, model_data.X_test, model_data.y_test
+                ),
+            },
+            "calibration_oof": calibration.probability_metrics(
+                calibration_data.y_calibration, calibration_probabilities
+            ),
+            "official_p8_test": {
+                "contract": official["contract_metrics"],
+                "uncalibrated_reference": official[
+                    "uncalibrated_reference_metrics"
+                ],
+                "threshold_scenarios": official["scenario_metrics"],
+            },
         },
         "package_versions": _package_versions(),
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -230,7 +304,11 @@ def build_artifact_bundle(
     if dataset_summary is not None:
         metadata["dataset_summary"] = dict(dataset_summary)
 
-    bundle = {"model": model, "metadata": metadata}
+    bundle = {
+        "model": model,
+        "calibrator": final_calibrator,
+        "metadata": metadata,
+    }
     validate_artifact_bundle(bundle)
     return bundle
 
@@ -238,11 +316,11 @@ def build_artifact_bundle(
 def validate_artifact_bundle(bundle: object) -> None:
     """Validate bundle structure, metadata completeness, and compatibility.
 
-    Rejects anything the app could not serve safely. Structure checks: dict
-    layout with 'model' and 'metadata', required metadata keys, schema
-    version, model name, feature-column contract (exact names and order),
-    target name, and D-013 package provenance/runtime compatibility. The
-    model object is then checked directly rather than
+    Rejects anything the app could not serve safely. Structure checks cover
+    the exact model/calibrator/metadata layout, schema version, feature and
+    model identity, D-018/D-019 protocol evidence, metric groups, and D-013
+    package provenance/runtime compatibility. The model object is checked
+    directly rather than
     trusting self-declared metadata: it must actually be a fitted D-016
     `HistGradientBoostingClassifier` whose fitted feature order matches the
     current contract, whose classes are exactly [0, 1], and whose
@@ -253,12 +331,21 @@ def validate_artifact_bundle(bundle: object) -> None:
     """
     if not isinstance(bundle, dict):
         raise ValueError(
-            "Artifact bundle must be a dict with 'model' and 'metadata' "
+            "Artifact bundle must be a dict with 'model', 'calibrator', and "
+            "'metadata' "
             f"entries; got {type(bundle).__name__}."
         )
-    missing_entries = [key for key in ("model", "metadata") if key not in bundle]
+    required_entries = {"model", "calibrator", "metadata"}
+    missing_entries = sorted(required_entries - set(bundle))
     if missing_entries:
-        raise ValueError(f"Artifact bundle is missing required entries: {missing_entries}.")
+        raise ValueError(
+            f"Artifact bundle is missing required entries: {missing_entries}."
+        )
+    unexpected_entries = sorted(set(bundle) - required_entries)
+    if unexpected_entries:
+        raise ValueError(
+            f"Artifact bundle has unexpected entries: {unexpected_entries}."
+        )
 
     metadata = bundle["metadata"]
     if not isinstance(metadata, dict):
@@ -297,6 +384,99 @@ def validate_artifact_bundle(bundle: object) -> None:
         raise ValueError(
             f"Artifact selection decision {metadata['selection_decision']!r} "
             f"does not match the accepted decision '{SELECTION_DECISION}'."
+        )
+    method = metadata["calibration_method"]
+    allowed_methods = {
+        calibration.NO_CALIBRATION,
+        *calibration.CALIBRATION_METHODS,
+    }
+    if method not in allowed_methods:
+        raise ValueError(
+            f"Artifact calibration_method {method!r} is invalid; expected one "
+            f"of {sorted(allowed_methods)}."
+        )
+    if (
+        metadata["calibration_decision"]
+        != calibration.CALIBRATION_SELECTION_DECISION
+    ):
+        raise ValueError(
+            "Artifact calibration_decision does not match the accepted D-018 "
+            "contract."
+        )
+    if metadata["calibration_protocol"] != CALIBRATION_PROTOCOL:
+        raise ValueError(
+            "Artifact calibration_protocol does not match the fixed P8 "
+            "cross-fitting contract."
+        )
+    if (
+        metadata["threshold_policy_decision"]
+        != calibration.THRESHOLD_POLICY_DECISION
+    ):
+        raise ValueError(
+            "Artifact threshold_policy_decision does not match accepted D-019."
+        )
+    if (
+        metadata["threshold_scenarios"]
+        != calibration.FROZEN_THRESHOLD_SCENARIOS
+    ):
+        raise ValueError(
+            "Artifact threshold_scenarios do not match the frozen D-019 "
+            "documentation scenarios."
+        )
+    metrics = metadata["metrics"]
+    if not isinstance(metrics, dict) or set(metrics) != {
+        "model_selection",
+        "calibration_oof",
+        "official_p8_test",
+    }:
+        raise ValueError(
+            "Artifact metrics must contain model_selection, calibration_oof, "
+            "and official_p8_test evidence."
+        )
+    model_selection = metrics["model_selection"]
+    if not isinstance(model_selection, dict) or set(model_selection) != {
+        "train",
+        "test",
+    }:
+        raise ValueError(
+            "Artifact model_selection metrics must contain train and test."
+        )
+    for split in ("train", "test"):
+        if not isinstance(model_selection[split], dict) or set(
+            model_selection[split]
+        ) != set(METRIC_KEYS):
+            raise ValueError(
+                f"Artifact model_selection {split} metrics do not match the "
+                "P5 metric contract."
+            )
+    if not isinstance(metrics["calibration_oof"], dict) or set(
+        metrics["calibration_oof"]
+    ) != set(calibration.PROBABILITY_METRIC_KEYS):
+        raise ValueError(
+            "Artifact calibration_oof metrics do not match the P8 probability "
+            "metric contract."
+        )
+    official = metrics["official_p8_test"]
+    if not isinstance(official, dict) or set(official) != {
+        "contract",
+        "uncalibrated_reference",
+        "threshold_scenarios",
+    }:
+        raise ValueError(
+            "Artifact official_p8_test evidence is incomplete."
+        )
+    for contract in ("contract", "uncalibrated_reference"):
+        if not isinstance(official[contract], dict) or set(
+            official[contract]
+        ) != set(calibration.PROBABILITY_METRIC_KEYS):
+            raise ValueError(
+                f"Artifact official_p8_test {contract} metrics are invalid."
+            )
+    if not isinstance(official["threshold_scenarios"], dict) or set(
+        official["threshold_scenarios"]
+    ) != set(calibration.FROZEN_THRESHOLD_SCENARIOS):
+        raise ValueError(
+            "Artifact official P8 threshold-scenario metrics are incomplete."
         )
     if metadata["model_class"] != SELECTED_MODEL_CLASS:
         raise ValueError(
@@ -339,6 +519,47 @@ def validate_artifact_bundle(bundle: object) -> None:
             "configuration (library defaults with the recorded seed); "
             "regenerate the artifact with 'python -m src.artifacts'."
         )
+
+    calibrator = bundle["calibrator"]
+    if method == calibration.NO_CALIBRATION:
+        if calibrator is not None:
+            raise ValueError(
+                "Artifact calibration_method 'none' requires calibrator=None."
+            )
+    else:
+        if not isinstance(calibrator, CalibratedClassifierCV):
+            raise ValueError(
+                f"Artifact calibration_method {method!r} requires a fitted "
+                "CalibratedClassifierCV calibrator."
+            )
+        if calibrator.method != method or calibrator.ensemble is not False:
+            raise ValueError(
+                "Artifact calibrator configuration is inconsistent with its "
+                "declared calibration_method."
+            )
+        if not isinstance(calibrator.estimator, FrozenEstimator):
+            raise ValueError(
+                "Artifact calibrator must wrap the frozen D-016 model."
+            )
+        if calibrator.estimator.estimator is not model:
+            raise ValueError(
+                "Artifact calibrator does not wrap the bundle's base model."
+            )
+        if not getattr(calibrator, "calibrated_classifiers_", None):
+            raise ValueError(
+                "Artifact calibrator is not fitted; regenerate the artifact."
+            )
+        if list(getattr(calibrator, "classes_", [])) != [0, 1]:
+            raise ValueError(
+                "Artifact calibrator classes do not match [0, 1]."
+            )
+        if list(getattr(calibrator, "feature_names_in_", [])) != list(
+            FEATURE_COLUMNS
+        ):
+            raise ValueError(
+                "Artifact calibrator feature order does not match the serving "
+                "contract."
+            )
 
 
 def save_artifact(bundle: dict, path: Path | str | None = None) -> Path:
@@ -450,17 +671,24 @@ def input_to_dataframe(values: dict) -> pd.DataFrame:
 
 
 def predict_risk_probability(bundle: dict, values: dict) -> float:
-    """Score one case: the positive-class probability from `predict_proba`.
-
-    The raw probability is returned without a custom decision threshold or
-    calibration; threshold and calibration work belong to P8.
-    """
+    """Score one case through the validated P8 probability contract."""
     validate_artifact_bundle(bundle)
     row = input_to_dataframe(values)
-    probability = float(predict_positive_proba(bundle["model"], row)[0])
+    scorer = (
+        bundle["model"]
+        if bundle["calibrator"] is None
+        else bundle["calibrator"]
+    )
+    probability = float(predict_positive_proba(scorer, row)[0])
     if not math.isfinite(probability) or not 0.0 <= probability <= 1.0:
         raise ValueError(f"Model returned an invalid probability: {probability!r}.")
     return probability
+
+
+def probability_is_calibrated(bundle: dict) -> bool:
+    """Whether the validated serving contract includes post-hoc calibration."""
+    validate_artifact_bundle(bundle)
+    return bundle["metadata"]["calibration_method"] != calibration.NO_CALIBRATION
 
 
 def example_input() -> dict[str, int]:
@@ -513,7 +741,7 @@ def main() -> None:
     """Command-line entry point: `python -m src.artifacts`."""
     print(f"Training the {SELECTED_MODEL_CLASS} ({SELECTION_DECISION}) on the P3 train split ...")
     path, probability = create_default_artifact()
-    test_metrics = load_artifact(path)["metadata"]["metrics"]["test"]
+    test_metrics = load_artifact(path)["metadata"]["metrics"]["model_selection"]["test"]
     print(f"Artifact saved to: {path}")
     print(
         "Test metrics (P5 protocol): "

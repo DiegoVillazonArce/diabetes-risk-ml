@@ -1,10 +1,10 @@
-"""Deployment-smoke reference profiles (P7, Epic E7, US-0703).
+"""Deployment-smoke reference profiles (P7/P8, Epics E7/E6).
 
 Each profile records the exact 21-feature model input for one synthetic
 reference case, the exact age a user types into the app's Age field together
 with the BRFSS age-group code the app must derive from it, and the expected
 model output computed locally from the official artifact
-(`models/diabetes_risk_model.joblib`, D-013/D-016) under the pinned
+(`models/diabetes_risk_model.joblib`, D-013/D-016/D-018) under the pinned
 environment (Python 3.12, `requirements.txt`).
 
 The profiles are the single source of truth shared by the local pytest
@@ -19,10 +19,11 @@ Provenance: the inputs were reconstructed and verified in P7 against the
 official artifact. The P6 manual observations near 0.3%, 60%, 70%, and
 79.9% guided the coverage targets, but they were never fixtures themselves;
 these recorded inputs and expectations replace them. Every expected
-probability is the raw positive-class `predict_proba` output through the
-serving contract (`src.artifacts.predict_risk_probability`) -- no decision
-threshold, calibration, or other post-processing is applied, and the tests
-verify the artifact still matches the untampered D-016 configuration.
+probability is produced through the schema-version-2 serving contract
+(`src.artifacts.predict_risk_probability`). D-018 selected `none`, so this
+contract still returns the raw positive-class `predict_proba` output with no
+post-hoc calibration; D-019 adds no served threshold or decision layer. The
+tests verify both the untampered D-016 model and the accepted P8 contract.
 """
 
 from __future__ import annotations

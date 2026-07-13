@@ -7,6 +7,7 @@ artifact write goes to a pytest temporary directory -- the repository's
 `models/` and `data/processed/` directories must stay untouched.
 """
 
+import copy
 import inspect
 import math
 
@@ -15,7 +16,7 @@ import pytest
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import HistGradientBoostingClassifier
 
-from src import artifacts, data, modeling
+from src import artifacts, calibration, data, modeling
 from tests.test_data import requires_raw_data
 from tests.test_modeling import make_splits
 
@@ -27,8 +28,12 @@ def bundle():
 
 
 def copy_bundle(bundle: dict) -> dict:
-    """Shallow copy safe for per-test mutation of top-level entries."""
-    return {"model": bundle["model"], "metadata": dict(bundle["metadata"])}
+    """Copy metadata deeply while retaining the fitted estimator objects."""
+    return {
+        "model": bundle["model"],
+        "calibrator": bundle["calibrator"],
+        "metadata": copy.deepcopy(bundle["metadata"]),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -56,11 +61,31 @@ def test_bundle_metadata_records_the_serving_contract(bundle):
     assert metadata["feature_columns"] == data.FEATURE_COLUMNS
     assert metadata["target"] == data.TARGET
     assert metadata["random_seed"] == data.RANDOM_SEED
-    # Selection evidence follows the shared P5 metric protocol on train/test
-    # only; the calibration split has no entry by construction.
-    assert set(metadata["metrics"]) == {"train", "test"}
+    assert metadata["calibration_method"] == calibration.NO_CALIBRATION
+    assert metadata["calibration_decision"] == "D-018"
+    assert metadata["calibration_protocol"] == artifacts.CALIBRATION_PROTOCOL
+    assert metadata["threshold_policy_decision"] == "D-019"
+    assert metadata["threshold_scenarios"] == calibration.FROZEN_THRESHOLD_SCENARIOS
+    assert bundle["calibrator"] is None
+    assert set(metadata["metrics"]) == {
+        "model_selection",
+        "calibration_oof",
+        "official_p8_test",
+    }
     for split in ("train", "test"):
-        assert set(metadata["metrics"][split]) == set(modeling.METRIC_KEYS)
+        assert set(metadata["metrics"]["model_selection"][split]) == set(
+            modeling.METRIC_KEYS
+        )
+    assert set(metadata["metrics"]["calibration_oof"]) == set(
+        calibration.PROBABILITY_METRIC_KEYS
+    )
+    official = metadata["metrics"]["official_p8_test"]
+    assert set(official) == {
+        "contract",
+        "uncalibrated_reference",
+        "threshold_scenarios",
+    }
+    assert official["contract"] == official["uncalibrated_reference"]
     package_versions = metadata["package_versions"]
     assert set(package_versions) == {
         "python",
@@ -120,19 +145,17 @@ def test_build_fits_only_on_train_rows(monkeypatch):
     assert fitted_indices["rows"] == list(splits.train.index)
 
 
-def test_build_does_not_consume_calibration_split():
-    # Poison the calibration split: any fit/predict/metric touching it would
-    # propagate NaN or raise, so a clean run proves it was never consumed.
+def test_build_records_the_selected_contract_on_calibration_rows():
     splits = make_splits()
-    poisoned = data.DataSplits(
-        train=splits.train,
-        calibration=splits.calibration * np.nan,
-        test=splits.test,
+    bundle = artifacts.build_artifact_bundle(splits)
+    expected = calibration.probability_metrics(
+        splits.calibration[data.TARGET],
+        modeling.predict_positive_proba(
+            bundle["model"], splits.calibration[data.FEATURE_COLUMNS]
+        ),
     )
 
-    bundle = artifacts.build_artifact_bundle(poisoned)
-
-    assert not np.isnan(bundle["metadata"]["metrics"]["test"]["roc_auc"])
+    assert bundle["metadata"]["metrics"]["calibration_oof"] == expected
 
 
 # ---------------------------------------------------------------------------
@@ -222,6 +245,11 @@ def break_missing_metadata(bundle):
     return bundle
 
 
+def break_missing_calibrator_entry(bundle):
+    del bundle["calibrator"]
+    return bundle
+
+
 def break_metadata_not_a_dict(bundle):
     bundle["metadata"] = "metadata"
     return bundle
@@ -299,6 +327,7 @@ def break_wrong_python_version(bundle):
         break_not_a_dict,
         break_missing_model,
         break_missing_metadata,
+        break_missing_calibrator_entry,
         break_metadata_not_a_dict,
         break_missing_required_key,
         break_wrong_schema_version,
@@ -327,6 +356,85 @@ def test_save_rejects_invalid_bundles(bundle, tmp_path):
     with pytest.raises(ValueError):
         artifacts.save_artifact(broken, tmp_path / "artifact.joblib")
     assert not (tmp_path / "artifact.joblib").exists()
+
+
+@pytest.mark.parametrize("method", ["none", "sigmoid", "isotonic"])
+def test_schema_v2_round_trip_supports_every_calibration_outcome(
+    bundle, method, tmp_path
+):
+    candidate = copy_bundle(bundle)
+    candidate["metadata"]["calibration_method"] = method
+    if method != calibration.NO_CALIBRATION:
+        cal_data = calibration.to_calibration_data(make_splits())
+        candidate["calibrator"] = calibration.fit_final_calibrator(
+            candidate["model"], cal_data, method
+        )
+
+    path = artifacts.save_artifact(
+        candidate, tmp_path / f"artifact-{method}.joblib"
+    )
+    loaded = artifacts.load_artifact(path)
+
+    assert loaded["metadata"]["calibration_method"] == method
+    assert (loaded["calibrator"] is None) == (method == "none")
+    probability = artifacts.predict_risk_probability(
+        loaded, artifacts.example_input()
+    )
+    assert 0.0 <= probability <= 1.0
+
+
+def test_validation_rejects_schema_v1_bundle(bundle):
+    legacy = copy_bundle(bundle)
+    legacy["metadata"]["schema_version"] = 1
+
+    with pytest.raises(ValueError, match="schema version"):
+        artifacts.validate_artifact_bundle(legacy)
+
+
+def test_validation_rejects_inconsistent_method_and_calibrator(bundle):
+    unexpected = copy_bundle(bundle)
+    cal_data = calibration.to_calibration_data(make_splits())
+    unexpected["calibrator"] = calibration.fit_final_calibrator(
+        unexpected["model"], cal_data, "sigmoid"
+    )
+    with pytest.raises(ValueError, match="requires calibrator=None"):
+        artifacts.validate_artifact_bundle(unexpected)
+
+    missing = copy_bundle(bundle)
+    missing["metadata"]["calibration_method"] = "sigmoid"
+    with pytest.raises(ValueError, match="requires a fitted"):
+        artifacts.validate_artifact_bundle(missing)
+
+
+def test_validation_rejects_unfitted_or_mismatched_calibrator(bundle):
+    cal_data = calibration.to_calibration_data(make_splits())
+
+    unfitted = copy_bundle(bundle)
+    unfitted["metadata"]["calibration_method"] = "sigmoid"
+    unfitted["calibrator"] = calibration.build_calibrator(
+        unfitted["model"], "sigmoid"
+    )
+    with pytest.raises(ValueError, match="not fitted"):
+        artifacts.validate_artifact_bundle(unfitted)
+
+    mismatched = copy_bundle(bundle)
+    mismatched["metadata"]["calibration_method"] = "sigmoid"
+    other_model = modeling.build_hist_gradient_boosting_candidate().fit(
+        cal_data.X_train, cal_data.y_train
+    )
+    mismatched["calibrator"] = calibration.fit_final_calibrator(
+        other_model, cal_data, "sigmoid"
+    )
+    with pytest.raises(ValueError, match="base model"):
+        artifacts.validate_artifact_bundle(mismatched)
+
+
+def test_validation_rejects_missing_calibration_metadata(bundle):
+    broken = copy_bundle(bundle)
+    del broken["metadata"]["calibration_protocol"]
+
+    with pytest.raises(ValueError, match="missing required keys"):
+        artifacts.validate_artifact_bundle(broken)
 
 
 # The model object itself is verified, not just its self-declared metadata
@@ -583,5 +691,9 @@ def test_create_default_artifact_end_to_end_on_real_dataset(tmp_path):
     assert metadata["dataset_summary"]["n_rows"] == data.EXPECTED_RAW_ROW_COUNT
     # The artifact must reproduce the D-016 selection evidence (fixed seed,
     # same splits, same protocol), not re-open the selection.
-    assert metadata["metrics"]["test"]["pr_auc"] == pytest.approx(0.423, abs=0.01)
-    assert metadata["metrics"]["test"]["roc_auc"] == pytest.approx(0.827, abs=0.01)
+    model_test = metadata["metrics"]["model_selection"]["test"]
+    assert model_test["pr_auc"] == pytest.approx(0.423, abs=0.01)
+    assert model_test["roc_auc"] == pytest.approx(0.827, abs=0.01)
+    official = metadata["metrics"]["official_p8_test"]["contract"]
+    assert official["brier"] == pytest.approx(0.097381, abs=1e-6)
+    assert official["log_loss"] == pytest.approx(0.314394, abs=1e-6)

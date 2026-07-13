@@ -1,4 +1,4 @@
-"""Streamlit MVP: single-case diabetes risk estimation (P6, Epic E5).
+"""Streamlit app: single-case diabetes risk estimation (P6/P8, Epics E5/E6).
 
 The app is a thin UI over the P6 serving contract in `src.artifacts`: it
 loads the local D-016 model artifact once per server process (cached; the
@@ -9,7 +9,7 @@ probability as an educational risk percentage with a visible medical
 disclaimer (US-0501, US-0502). Model-feature bounds come from the P3
 `VALUE_RANGES` contract; an exact adult age is validated in the UI and mapped
 to the model's BRFSS age-group code before `src.artifacts` re-validates and
-scores the case.
+scores the case through the schema-version-2 P8 probability contract.
 
 Run from the project root (the artifact ships with the repository per
 D-013; regenerate it only to reproduce training):
@@ -33,14 +33,40 @@ import streamlit as st
 from src import artifacts
 from src.data import VALUE_RANGES
 
-DISCLAIMER = (
-    "**Medical disclaimer:** this tool is an educational portfolio project "
-    "built on self-reported BRFSS 2015 survey data. The percentage shown is "
-    "an uncalibrated statistical estimate from a machine-learning model -- "
-    "it is not a diagnosis, it cannot detect or rule out diabetes, and it "
-    "does not replace professional medical advice. Consult a healthcare "
-    "professional for any medical concern."
-)
+def medical_disclaimer(bundle: dict) -> str:
+    """Medical warning whose calibration wording matches the served contract."""
+    calibrated = artifacts.probability_is_calibrated(bundle)
+    method = bundle["metadata"]["calibration_method"]
+    estimate = (
+        f"a post-hoc {method}-calibrated statistical estimate"
+        if calibrated
+        else "an uncalibrated statistical estimate"
+    )
+    return (
+        "**Medical disclaimer:** this tool is an educational portfolio project "
+        "built on self-reported BRFSS 2015 survey data. The percentage shown is "
+        f"{estimate} from a machine-learning model -- it is not a diagnosis, "
+        "it cannot detect or rule out diabetes, and it does not replace "
+        "professional medical advice. Consult a healthcare professional for "
+        "any medical concern."
+    )
+
+
+def probability_contract_caption(bundle: dict) -> str:
+    """Explain the validated P8 contract without introducing a decision layer."""
+    calibrated = artifacts.probability_is_calibrated(bundle)
+    method = bundle["metadata"]["calibration_method"]
+    if calibrated:
+        return (
+            f"Positive-class probability with post-hoc {method} calibration "
+            "selected by D-018; no custom decision threshold is applied."
+        )
+    return (
+        "Uncalibrated positive-class probability from the model's "
+        "`predict_proba`. D-018 retained this contract because neither "
+        "post-hoc method met the pre-declared adoption criteria; no custom "
+        "decision threshold is applied."
+    )
 
 # Yes/no indicators rendered as checkboxes (checked = 1). `Sex` is rendered
 # separately because its 0/1 codes mean female/male, not no/yes.
@@ -252,12 +278,8 @@ def main() -> None:
                 f"Age {exact_age} was evaluated in the "
                 f"{AGE_GROUP_LABELS[values['Age']]} model age group."
             )
-            st.caption(
-                "Positive-class probability from the model's `predict_proba` "
-                "with no custom decision threshold; probabilities are not yet "
-                "calibrated (planned post-MVP work)."
-            )
-    st.warning(DISCLAIMER)
+            st.caption(probability_contract_caption(bundle))
+    st.warning(medical_disclaimer(bundle))
 
 
 if __name__ == "__main__":

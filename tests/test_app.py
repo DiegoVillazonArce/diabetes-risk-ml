@@ -17,7 +17,7 @@ import inspect
 import pytest
 import streamlit as st
 
-from src import artifacts, data
+from src import artifacts, calibration, data
 from tests.test_modeling import make_splits
 
 APP_PATH = data.PROJECT_ROOT / "app" / "streamlit_app.py"
@@ -145,6 +145,37 @@ def test_app_shows_disclaimer_and_uses_the_artifact_helpers():
     assert "medical advice" in lowered
 
 
+def test_app_wording_tracks_the_conditional_probability_contract():
+    module = import_app("streamlit_app_probability_contract")
+    splits = make_splits()
+    uncalibrated = artifacts.build_artifact_bundle(splits)
+
+    uncalibrated_caption = module.probability_contract_caption(uncalibrated)
+    uncalibrated_disclaimer = module.medical_disclaimer(uncalibrated)
+    assert "Uncalibrated" in uncalibrated_caption
+    assert "D-018 retained" in uncalibrated_caption
+    assert "uncalibrated statistical estimate" in uncalibrated_disclaimer
+
+    calibrated = {
+        "model": uncalibrated["model"],
+        "calibrator": calibration.fit_final_calibrator(
+            uncalibrated["model"], calibration.to_calibration_data(splits), "sigmoid"
+        ),
+        "metadata": dict(uncalibrated["metadata"]),
+    }
+    calibrated["metadata"]["calibration_method"] = "sigmoid"
+
+    calibrated_caption = module.probability_contract_caption(calibrated)
+    calibrated_disclaimer = module.medical_disclaimer(calibrated)
+    assert "post-hoc sigmoid calibration" in calibrated_caption
+    assert "Uncalibrated" not in calibrated_caption
+    assert "post-hoc sigmoid-calibrated" in calibrated_disclaimer
+    assert "uncalibrated" not in calibrated_disclaimer
+    for disclaimer in (uncalibrated_disclaimer, calibrated_disclaimer):
+        assert "not a diagnosis" in disclaimer
+        assert "medical advice" in disclaimer
+
+
 def test_artifact_loading_is_local_only():
     # Durable policy from the ML analysis plan (independent of the P6/P7
     # phase boundary): the app and the artifact helpers only load artifacts
@@ -175,6 +206,7 @@ def test_app_renders_and_predicts_headlessly(tmp_artifact):
 
     assert not app.exception
     assert len(app.warning) >= 1  # disclaimer visible before any prediction
+    assert any("uncalibrated" in warning.value.lower() for warning in app.warning)
     assert len(app.button) == 1  # the single form submit button
     assert len(app.selectbox) == 4  # Sex plus three coded ordinal scales
     assert len(app.number_input) == 4  # Exact age plus three numeric measures

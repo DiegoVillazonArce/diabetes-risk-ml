@@ -128,10 +128,17 @@ def test_expectations_come_from_the_untampered_d016_artifact(official_bundle):
         package: package_versions[package]
         for package in artifacts.ARTIFACT_PACKAGE_VERSION_PINS
     } == artifacts.ARTIFACT_PACKAGE_VERSION_PINS
-    assert metadata["metrics"]["test"]["pr_auc"] == pytest.approx(0.423, abs=0.01)
-    assert metadata["metrics"]["test"]["roc_auc"] == pytest.approx(0.827, abs=0.01)
-    # The serving path applies no decision threshold or calibration: the
-    # expectation is the raw positive-class predict_proba output.
+    model_test = metadata["metrics"]["model_selection"]["test"]
+    assert model_test["pr_auc"] == pytest.approx(0.423, abs=0.01)
+    assert model_test["roc_auc"] == pytest.approx(0.827, abs=0.01)
+    assert metadata["schema_version"] == 2
+    assert metadata["calibration_decision"] == "D-018"
+    assert metadata["calibration_method"] == "none"
+    assert official_bundle["calibrator"] is None
+    assert metadata["threshold_policy_decision"] == "D-019"
+    # The selected P8 serving path applies no decision threshold and D-018
+    # selected no post-hoc calibrator, so the expectation remains the raw
+    # positive-class predict_proba output.
     row = artifacts.input_to_dataframe(REFERENCE_PROFILES[0].features)
     raw = float(
         modeling.predict_positive_proba(official_bundle["model"], row)[0]

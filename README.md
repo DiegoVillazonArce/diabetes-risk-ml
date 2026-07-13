@@ -6,7 +6,7 @@ Machine Learning app to estimate self-reported diabetes/prediabetes risk using B
 
 ## Current Status
 
-The MVP lifecycle through public deployment (P0-P7) is complete. The selected `HistGradientBoostingClassifier` (decision D-016) is trained offline through `src/artifacts.py`; the official artifact ships with the repository under the controlled D-013 Git exception; and `app/streamlit_app.py` serves single-case educational risk predictions without training, downloading a model, or reading the raw CSV at runtime. The app is live at [brfss-diabetes-risk-estimator.streamlit.app](https://brfss-diabetes-risk-estimator.streamlit.app/). Public startup, form rendering, artifact loading, disclaimer visibility, exact-age conversion, and all four deployment reference profiles are verified. P8, probability calibration and threshold analysis, is refined and Ready (stories US-0601/US-0606/US-0607; decisions D-018/D-019 pending); the next step is implementing its first increment. The public app continues to serve uncalibrated probabilities until P8 resolves D-018 and deploys the selected probability contract through a schema-version-2 artifact.
+The MVP lifecycle through public deployment (P0-P7) is complete. P8's local implementation is also complete: the frozen D-016 `HistGradientBoostingClassifier` was compared with sigmoid and isotonic calibration under a leakage-safe five-fold out-of-fold protocol; D-018 accepted `calibration_method = none` because neither method passed the pre-declared Brier adoption rule; and D-019 retained a probability-only product while documenting four threshold trade-off scenarios. The local official artifact now uses schema version 2, stores no calibrator for the accepted `none` outcome, and reproduces the existing four profiles at 0.3%, 60.0%, 70.0%, and 79.9%. The public app at [brfss-diabetes-risk-estimator.streamlit.app](https://brfss-diabetes-risk-estimator.streamlit.app/) still serves the last committed P7 revision until these unstaged P8 changes are reviewed, committed, pushed, redeployed, and publicly smoke-tested; US-0607 and roadmap P8 therefore remain open at that external gate.
 
 ## Run It Locally
 
@@ -58,7 +58,7 @@ The official trained artifact is version-controlled at `models/diabetes_risk_mod
 python -m src.artifacts
 ```
 
-This trains the selected D-016 model offline through the project's data contract on the local CSV, then overwrites `models/diabetes_risk_model.joblib` after a load/predict smoke check. Training only ever happens through this offline command (decision D-007): the Streamlit app loads the artifact and never trains, downloads models, or reads the CSV.
+This trains the selected D-016 model offline through the project's data contract, rebuilds the accepted P8 probability contract, records its calibration/threshold provenance under schema version 2, and overwrites `models/diabetes_risk_model.joblib` after a load/predict smoke check. With D-018's current `none` result, no calibrator is fitted or stored. Training and any conditional calibration only happen through offline project code (decision D-007): Streamlit loads the validated artifact and never trains, calibrates, downloads models, or reads the CSV.
 
 ### 5. Run the test suite
 
@@ -74,7 +74,7 @@ With the raw CSV in place the whole suite runs, including the real-data integrat
 python -m streamlit run app/streamlit_app.py
 ```
 
-The app loads the local artifact once, renders the 21-feature input form, and shows the model's uncalibrated positive-class probability as an educational risk percentage with a visible medical disclaimer.
+The app loads the local artifact once, renders the 21-feature input form, and shows the schema-version-2 contract's positive-class probability as an educational risk percentage with a visible medical disclaimer. The current D-018 outcome is `none`, so the UI explicitly identifies the probability as uncalibrated and explains that neither post-hoc method met the pre-declared adoption criteria; D-019 adds no decision threshold or high/low-risk label.
 
 ## Troubleshooting: artifact and environment incompatibility
 
@@ -102,12 +102,12 @@ python -c "from src.artifacts import load_artifact; print(load_artifact()['metad
 
 ## Deployment
 
-The MVP is deployed on Streamlit Community Cloud at [https://brfss-diabetes-risk-estimator.streamlit.app/](https://brfss-diabetes-risk-estimator.streamlit.app/). The deployment uses branch `main`, entry point `app/streamlit_app.py`, Python 3.12, the pinned `requirements.txt`, and the version-controlled official artifact selected by D-013. The deployed app performs no training, model download, or CSV access. Verification confirmed successful startup, artifact loading, the complete 21-feature form, the visible medical disclaimer, and all four reference profiles with exact displayed outputs of 0.3%, 60.0%, 70.0%, and 79.9% and their expected age-group messages.
+The MVP is deployed on Streamlit Community Cloud at [https://brfss-diabetes-risk-estimator.streamlit.app/](https://brfss-diabetes-risk-estimator.streamlit.app/). It uses branch `main`, entry point `app/streamlit_app.py`, Python 3.12, the pinned `requirements.txt`, and the D-013 version-controlled artifact. The currently public revision is the verified P7 schema-version-1 deployment: startup, artifact loading, the 21-feature form, disclaimer, and displays 0.3%, 60.0%, 70.0%, and 79.9% were confirmed. The local schema-version-2 P8 revision preserves those probabilities but is not described as publicly deployed until its implementation and regenerated artifact are committed/pushed and the same smoke checks pass on Streamlit.
 
 ## Project Structure
 
 ```
-src/               # Reusable Python modules (data contract, modeling, artifacts)
+src/               # Reusable data, modeling, calibration, and artifact modules
 notebooks/         # EDA and analysis notebooks
 app/               # Streamlit application code
 tests/             # Pytest suite, including deployment reference profiles
