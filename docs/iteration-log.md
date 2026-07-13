@@ -454,3 +454,97 @@ The protocol details live in `docs/ml-analysis-plan.md` ("Calibration and Thresh
 - Refine P9 (SHAP explainability) before implementation so global and local explanations target the final serving probability contract selected in P8.
 - Evaluate the CI quality-track candidate (automated pytest on pushes) during the next implementation increment.
 - Keep evaluating `skops` as a safer serialization option before final portfolio packaging, per D-010.
+
+## Next Iteration Planning: P9 SHAP Explainability
+
+**Date:** 2026-07-13
+
+**Status:** Ready -- rolling-wave refinement is complete; P9 implementation has not started
+
+**Goal:** Explain globally and locally the behavior of the final P8 probability contract without modifying its predictions, while providing a simple non-technical Streamlit explanation and reproducible academic/technical evidence with no causal, diagnostic, clinical, or prescriptive claims.
+
+### Stories Included
+
+- US-0602 -- explanation output contract, compatibility evidence, and offline global SHAP analysis.
+- US-0608 -- reproducible local explanations for the four public synthetic reference profiles.
+- US-0609 -- delivery, integration, privacy, regression protection, and two-level communication.
+
+All three stories are Ready. Their acceptance criteria and unchecked implementation tasks are recorded under "Candidate Tasks for P9" in `docs/backlog.md`.
+
+### Planned Increments
+
+P9 is planned as four ordered, independently verifiable increments:
+
+1. **Increment 1 -- compatibility and technical contract (approximately 1 day).** Spike SHAP against Python 3.12, NumPy 2.2.6, scikit-learn 1.7.1, and the frozen D-016 `HistGradientBoostingClassifier`; evaluate TreeExplainer first; validate output shape, positive class, exact feature order, finiteness, additivity, runtime, memory, and whether any deployable explainer retains background rows; resolve D-020 and D-021 from evidence; pin SHAP only after the selected route passes. Direct served-probability explanations must pass the fixed `1e-4` absolute tolerance; a different mathematical output must have its own tolerance fixed during this spike before full analysis. No tolerance, output, or explainer may change silently after results.
+2. **Increment 2 -- offline global analysis (approximately 1-2 days).** Apply the accepted D-021 policy; initially propose a deterministic 256-row train-only background and an up-to-5,000-row deterministic, proportionally stratified calibration sample that preserves the calibration prevalence with seed 42; produce aggregate mean absolute SHAP importance, a global bar plot, a beeswarm plot, and the reproducible technical report. Sample sizes may change only during Increment 1 for documented performance or memory constraints, never after inspecting explanations to favor a narrative.
+3. **Increment 3 -- local explanations (approximately 1-2 days).** Explain all four public synthetic reference profiles; produce base value, final estimate, contribution tables, and waterfall plots or the evidenced equivalent; translate encoded features into accurate user labels; validate additivity, finiteness, positive class, exact feature order, unchanged probabilities, and reproducibility; prepare simple and technical wording without causal or medical claims.
+4. **Increment 4 -- integration, regression, and deployment (approximately 1-2 days).** Resolve D-022 before changing Streamlit; implement only the accepted dynamic, precomputed, or hybrid strategy; accept a dynamic path only when deployed assets expose no real background rows, otherwise validate a faithful aggregate/synthetic background or reject that option; run the full and headless test batteries; verify performance, timeout behavior where applicable, privacy, disclaimer visibility, wording, and exact conservation of the four P8 reference probabilities; deploy through the existing process and pass the mandatory public smoke test.
+
+### Pending Decisions
+
+- **D-020 -- SHAP explanation output contract:** positive-class probability with TreeExplainer, raw margin with explicit transformation/communication, or a model-agnostic fallback. Resolve from compatibility, fidelity, additivity, time, and memory evidence; keep `1e-4` fixed for direct probability and predeclare any different output-space tolerance before full analysis.
+- **D-021 -- SHAP background and evaluation sample policy:** origin, size, seed, proportional sampling/stratification, privacy, and fixed global-analysis sample. Resolve before full analysis; the calibration sample must preserve its original prevalence, and test cannot participate in configuration or narrative choices.
+- **D-022 -- explanation delivery and communication levels:** dynamic, precomputed, or hybrid local delivery. Resolve before Streamlit changes, considering performance, memory, privacy, fidelity, maintenance, deployment, non-technical UX, and the simple-app/technical-GitHub separation; reject any dynamic design that exposes real background rows unless a privacy-safe aggregate/synthetic replacement passes the fidelity contract.
+
+All three decisions remain Pending during this refinement. None may be marked Accepted without implementation evidence from its named gate.
+
+### Guardrails
+
+- Explain only the final P8 contract: schema-version-2 artifact, frozen D-016 model, `calibration_method = none`, and positive-class probability served by `predict_risk_probability` unless D-020 evidences and explicitly communicates a different additive output space.
+- Do not retrain, recalibrate, retune, or replace the model; do not regenerate the official artifact for planning; do not change thresholds, labels, or served probabilities.
+- Do not use test to choose the explainer, output, background, sample, tolerance, narrative, feature emphasis, visualization, or delivery strategy.
+- Use offline background rows from train only. Calibration may supply the proportionally stratified fixed global-analysis sample under D-021. Publish or deploy no real train, calibration, or test row; only aggregate global outputs and the four synthetic public profiles may appear in published evidence, and runtime explainers/assets must not expose real background rows.
+- Describe contributions only as increasing or decreasing the model's estimate. Do not interpret them as causes, protective effects, diagnoses, clinical conclusions, recommended interventions, or evidence that changing a feature changes real medical risk.
+- Preserve the existing medical disclaimer and probability-only product behavior.
+- Keep P10 scenario exploration and P12 fairness analysis outside P9.
+- Keep model fitting, data download, and global SHAP computation out of the Streamlit import/serving path.
+- CI remains an optional quality-track candidate or independent increment, not part of the SHAP critical path or P9 Definition of Done.
+
+### Expected Deliverables
+
+Future implementation is expected to produce, but this planning iteration does not create:
+
+- `src/explainability.py`.
+- `tests/test_explainability.py`.
+- `docs/p9-explainability/report.md`.
+- An aggregate global-importance CSV and a local-contribution CSV for the four public synthetic profiles.
+- A global bar plot, a beeswarm plot, and local waterfall plots or the approved equivalent.
+- Controlled changes to `app/streamlit_app.py` that deliver the required simple explanation according to the resolved D-022 outcome.
+- A pinned SHAP dependency only after the compatibility spike succeeds.
+
+The technical report must document the methodology, output and positive class, base value and contributions, explainer configuration, background and analysis sample, seed, additivity, reproducibility, package versions, limitations, privacy policy, performance/memory evidence, and plot-generation procedure. Streamlit must present the same contract progressively in everyday language without reproducing unnecessary academic detail.
+
+### Expected Tests
+
+- A finite SHAP contribution matrix with exact shape `n x 21`, correct positive class, and columns in exact `FEATURE_COLUMNS` order.
+- Additivity under the fixed `1e-4` absolute tolerance for direct served-probability explanations; any different D-020 output space uses a separately justified tolerance fixed during the spike before full analysis, plus an explicit tested relationship to `predict_risk_probability`.
+- Fixed-seed reproducibility of background/sample membership, global importance, plot inputs, and all four local explanations.
+- Proven train-only offline background provenance, proportional preservation of the calibration sample prevalence, and structural exclusion of test from every configuration, decision, narrative, and plot-selection path.
+- Exact preservation of the four P8 reference probabilities and their recorded displays.
+- Content checks preventing causal claims, diagnoses, and clinical recommendations while retaining the medical disclaimer.
+- Performance and timeout checks if D-022 selects any dynamic runtime explanation.
+- Privacy checks proving that deployed explainers/assets expose no real background rows and that any aggregate/synthetic replacement preserves the selected fidelity contract.
+- Source/import guards proving Streamlit performs no fitting, data download, or global SHAP computation during import.
+- Full pytest and Streamlit headless coverage for the implemented P9 path, plus mandatory public smoke verification of the required Streamlit explanation.
+
+### Definition of Done
+
+P9 may move from Ready to Done only after implementation and verification demonstrate all of the following:
+
+- Reproducible global and local SHAP evidence exists for the selected D-020 output contract.
+- Base values and contributions are mathematically faithful to the P8 served probability contract, or to an explicitly transformed output whose relationship to that probability is fully tested and communicated.
+- The frozen model, official artifact, thresholds, and four reference probabilities have no unauthorized changes.
+- A simple, visual, progressive explanation is available to the general public in Streamlit with the existing medical disclaimer.
+- `docs/p9-explainability/report.md` and its generated evidence are sufficient for academic and technical audit and reproduction.
+- Published language is non-causal, non-diagnostic, non-clinical, and non-prescriptive; explanations are not converted into intervention recommendations.
+- The complete test suite and Streamlit headless checks are clean.
+- The updated Streamlit application passes public verification.
+- D-020, D-021, and D-022 are resolved with recorded evidence.
+
+This planning refinement satisfies none of those implementation-dependent completion claims by itself; P9 remains Ready.
+
+### Follow-Up
+
+- Begin P9 Increment 1 with the compatibility and output-contract spike; do not begin full SHAP analysis before D-020 and D-021 are resolved.
+- After P9 is implemented, verified, and closed, refine P10 through a separate rolling-wave planning step. P10 remains Future and is not refined here.
+- Retain CI and `skops` as independent quality/packaging candidates without adding either to P9's critical path.
