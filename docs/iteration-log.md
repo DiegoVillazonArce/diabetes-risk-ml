@@ -378,24 +378,26 @@ Throughout P7, keep the calibration split untouched. Do not add calibration, thr
 - Preserve the existing train/calibration/test contract: fit the selected model on train, reserve calibration work for the calibration split, and keep test for final evaluation.
 - Leave SHAP for P9 so explanations target the final serving probability contract selected in P8.
 
-## Next Iteration Planning: P8 Probability Calibration and Threshold Analysis
+## Iteration 8: P8 Probability Calibration and Threshold Analysis
 
-**Date:** 2026-07-11
+**Start date:** 2026-07-11
 
-**Status:** In Progress -- all four local increments implemented and validated; commit/push, Streamlit redeploy, and public smoke verification remain the external closure gate
+**Completion date:** 2026-07-13
+
+**Status:** Completed -- implementation commit `5798a0e` is on `main`, and the public schema-version-2 deployment passed the P8 smoke verification
 
 **Goal:** Make the public app's risk percentages more honest by evaluating calibration of the frozen D-016 model's probabilities through a leakage-safe protocol on the untouched calibration split, documenting decision-threshold trade-offs on the selected contract's out-of-fold evidence, and only then integrating the D-018-selected probability contract (sigmoid, isotonic, or a justified `none`) into a schema-version-2 artifact and the deployed app -- without reopening model selection or introducing a decision layer by default.
 
-### Planned Scope
+### Completed Scope
 
-Execute P8 as four 1-2 day increments, in this order:
+P8 was executed as four ordered 1-2 day increments:
 
 1. **Increment 1 -- refinement, uncalibrated baseline, and metric/test infrastructure.** Confirm this refinement; score the calibration split with the frozen train-only D-016 model and record the uncalibrated baseline (reliability diagram, Brier score, log loss, with ROC-AUC/PR-AUC as ranking context); build the reusable calibration-metric helpers and the stratified fold/out-of-fold assembly with a fixed seed; land the fit-spy and poisoned-split guards from the start so leakage safety is enforced before any calibrator exists.
 2. **Increment 2 -- cross-fitting comparison and D-018 resolution.** Stratified five-fold cross-fitting within the calibration split on the frozen model's scores; sigmoid and isotonic calibrators fitted per fold and combined into complete out-of-fold predictions; out-of-fold reliability diagrams and the paired-bootstrap metric comparison against the uncalibrated baseline; select the method (sigmoid, isotonic, or none) strictly per the D-018 pre-declared operationalized criteria, using no test data, and resolve D-018 with the recorded evidence.
 3. **Increment 3 -- threshold analysis, D-019, and the official P8 test evaluation.** In this order: precision-recall curves and threshold tables from the selected contract's out-of-fold probabilities; freeze the threshold scenarios and resolve D-019; refit the selected calibrator (when one was selected) on the full calibration split; run the official P8 test evaluation of the frozen contract; record the results without revisiting D-018 or D-019. After D-018 and D-019 are frozen there is exactly one official P8 evaluation on test; later runs (deterministic artifact regeneration, regression tests, full-suite repeats, deployment verification) may only repeat it as a deterministic regression check and never modify decisions, methods, or thresholds.
 4. **Increment 4 -- schema-version-2 artifact, app integration, and public redeploy.** Bundle the frozen base model with the D-018-selected contract (`calibration_method` plus the fitted final calibrator only when the method requires one) and calibration metadata (method, protocol, metrics, versions) under artifact schema version 2 with validation as strict as version 1; update the app wording to match the served contract (dropping the uncalibrated notice only when a calibrator ships); regenerate the four deployment reference profiles when the served probabilities change or re-verify them unchanged; run the full local and headless battery; regenerate and ship the official version-2 artifact per D-013; redeploy and rerun the public smoke tests.
 
-The protocol details live in `docs/ml-analysis-plan.md` ("Calibration and Threshold Analysis Plan"); the refined stories and candidate tasks live under Epic E6 in `docs/backlog.md` (US-0601, US-0606, US-0607).
+The protocol details live in `docs/ml-analysis-plan.md` ("Calibration and Threshold Analysis Plan"); the refined stories and implementation tasks live under Epic E6 in `docs/backlog.md` (US-0601, US-0606, US-0607).
 
 ### Guardrails
 
@@ -408,23 +410,23 @@ The protocol details live in `docs/ml-analysis-plan.md` ("Calibration and Thresh
 - The implementation keeps the P8 changes limited to offline calibration analysis, the artifact/serving contract, tests, and documentation; no later-phase feature is pulled forward.
 - CI remains only a quality-track candidate and is not implemented in P8.
 
-### Implementation Progress (2026-07-12)
+### Implementation and Closure (2026-07-12 to 2026-07-13)
 
 - **Increment 1 completed.** `src/calibration.py` implements the P8 infrastructure on top of the P3/P5 contracts: `CalibrationData` (train and calibration rows only; the test split is structurally absent, mirroring how `TrainTestData` excluded calibration), the frozen train-only D-016 base model, per-row Brier/log-loss helpers that reproduce the pinned scikit-learn aggregates (including the machine-epsilon clipping that keeps isotonic's exact 0/1 outputs finite), reliability-diagram and probability-histogram tables, deterministic stratified five-fold assignment with both-classes validation, and out-of-fold assembly that rejects duplicate, missing, out-of-range, or invalid predictions. The uncalibrated baseline was recorded on the calibration split before any calibrator existed: Brier 0.096940, log loss 0.313828, ROC-AUC 0.827060, PR-AUC 0.432421.
 - **Increment 2 completed.** Calibrators use the public scikit-learn 1.7.1 API selected after consulting the pinned version's source and documentation: `CalibratedClassifierCV(FrozenEstimator(base_model), method=..., ensemble=False)`, the documented replacement for the deprecated `cv="prefit"`. With a frozen estimator, `fit(X, y)` fits exactly one sigmoid/isotonic calibrator on the frozen model's `decision_function` scores for all provided rows and never refits the base model, so cross-fitting and final serving share one score representation by construction. Stratified five-fold cross-fitting produced complete out-of-fold probabilities per method; the paired bootstrap (10,000 fixed-seed resamples, batched to bound memory without changing the resample stream) and the pre-declared selection rules ran exactly as operationalized. Result: neither method is adoptable (Brier deltas against the baseline: sigmoid +2.44e-05, CI [-0.56e-05, +5.46e-05]; isotonic +6.01e-05, CI [-11.15e-05, +23.18e-05]; both log-loss deltas strictly positive; isotonic also fails the 0.005 PR-AUC guard with a 0.00736 drop). D-018 resolved as Accepted: `calibration_method = none`; the frozen D-016 model's own probabilities are retained. Evidence: `docs/decisions.md`, `docs/p8-calibration/report.md`, and 67 focused tests in `tests/test_calibration.py` covering leakage, fit scope, OOF integrity, reproducibility, bootstrap rules, method selection, thresholds, and test isolation.
 - **Increment 3 completed.** The selected `none` contract's calibration probabilities produced the full precision-recall curve and 0.01--0.99 threshold table. D-019 froze four documentation scenarios before test -- 0.50, 0.25 (maximum F1), 0.29 (recall floor 0.50), and 0.15 (recall floor 0.75) -- while retaining a probability-only app with no decision labels. The official P8 test evaluation then recorded Brier 0.097381, log loss 0.314394, ROC-AUC 0.826955, and PR-AUC 0.423065 without revisiting D-018 or D-019. Exact evidence and figures live in `docs/p8-calibration/report.md`.
-- **Increment 4 locally completed.** `src/artifacts.py` now creates and strictly validates schema-version-2 bundles with a conditional calibrator, fixed P8 protocol/decision metadata, OOF metrics, official test metrics, frozen scenarios, and package provenance. The accepted artifact has `calibration_method = none` and `calibrator = None`; Streamlit explains that outcome while preserving the medical disclaimer and probability-only behavior. The official D-013 artifact was regenerated, and all four reference profiles re-verified unchanged at 0.3%, 60.0%, 70.0%, and 79.9%. Contract tests cover `none`, `sigmoid`, and `isotonic`, schema-v1 rejection, missing/inconsistent/unfitted calibrators, metadata integrity, serving, and headless rendering.
+- **Increment 4 completed.** `src/artifacts.py` now creates and strictly validates schema-version-2 bundles with a conditional calibrator, fixed P8 protocol/decision metadata, OOF metrics, official test metrics, frozen scenarios, and package provenance. The accepted artifact has `calibration_method = none` and `calibrator = None`; Streamlit explains that outcome while preserving the medical disclaimer and probability-only behavior. The official D-013 artifact was regenerated, and all four reference profiles re-verified unchanged at 0.3%, 60.0%, 70.0%, and 79.9%. Contract tests cover `none`, `sigmoid`, and `isotonic`, schema-v1 rejection, missing/inconsistent/unfitted calibrators, metadata integrity, serving, and headless rendering.
 - **Local validation passed 2026-07-13.** `python -m src.calibration` reproduced D-018, D-019, all evidence tables/figures, and the official P8 test metrics. The pinned `.venv` then passed the complete test battery: 229 passed, including real-data integrations, artifact schema outcomes, reference profiles, and Streamlit headless tests. `python -m compileall -q src app tests` and `git diff --check` also passed. The only pytest warning is joblib's sandbox-specific inability to detect physical CPU cores; it falls back to logical cores and does not affect results.
-- **External closure gate remains.** Review these unstaged changes, then commit/push, wait for Streamlit to redeploy the version-2 artifact, and rerun startup/form/disclaimer plus the four public reference profiles. Until that evidence exists, US-0607 stays In Progress and roadmap P8 stays Ready rather than Done.
+- **Public deployment closure passed 2026-07-13.** Implementation commit `5798a0e` was pushed to `main` and the Streamlit app was rebooted/redeployed. Public verification confirmed startup and schema-version-2 artifact loading, the complete form, contract-consistent uncalibrated-probability wording, the medical disclaimer, and probability-only behavior with no high/low-risk labels or decision threshold. The four reference profiles matched exactly: 0.3% for age 24 (18-24), 60.0% for age 80 (80 or older), 70.0% for age 70 (70-74), and 79.9% for age 65 (65-69). US-0607 and roadmap P8 are Done.
 
-### Expected Deliverables
+### Delivered
 
 - Reusable, offline P8 calibration code (fold assembly, calibrator fitting, out-of-fold prediction, reliability/Brier/log-loss reporting) built on the existing P3 split contract.
 - Recorded uncalibrated baseline, paired-bootstrap out-of-fold method comparison, threshold trade-off tables, and the official P8 test evaluation.
 - D-018 and D-019 resolved from evidence, in that order and both before the official test evaluation. Both are now Accepted with their evidence recorded.
-- A schema-version-2 official artifact serving the D-018-selected probability contract, reference profiles re-verified to match it, and app wording consistent with the served contract. Local work is complete; the verified public redeploy remains the closure gate.
+- A schema-version-2 official artifact serving the D-018-selected probability contract, reference profiles re-verified to match it, and app wording consistent with the served contract. The artifact is deployed and the public smoke verification passed.
 
-### Expected Tests
+### Validation Coverage
 
 - Fit-spy checks: the base model consumes exactly the train rows; each per-fold calibrator fits on exactly its four assigned training folds and never on its held-out fold; the final calibrator (when one is selected) fits on exactly the full calibration split; no calibrator ever fits on train or test rows.
 - Test isolation: test rows never reach the comparison, selection, or threshold-analysis code paths (poisoning the test split leaves them unchanged); test enters only the official P8 evaluation and its deterministic regression repeats.
@@ -449,7 +451,6 @@ The protocol details live in `docs/ml-analysis-plan.md` ("Calibration and Thresh
 
 ### Follow-Up
 
-- Review and deploy Increment 4, then record the public schema-v2 smoke evidence before closing US-0607 and P8.
-- After P8 closure, refine P9 (SHAP explainability) so global and local explanations target the final serving probability contract selected in P8.
+- Refine P9 (SHAP explainability) before implementation so global and local explanations target the final serving probability contract selected in P8.
 - Evaluate the CI quality-track candidate (automated pytest on pushes) during the next implementation increment.
 - Keep evaluating `skops` as a safer serialization option before final portfolio packaging, per D-010.

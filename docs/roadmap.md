@@ -53,7 +53,7 @@ Advanced post-MVP features include calibration depth, SHAP polish, model scenari
 | P5 | Model Comparison and Selection | Compare candidate models using appropriate imbalanced classification metrics. | Yes | Done |
 | P6 | Streamlit MVP | Serve a trained model for individual prediction with clear disclaimers. | Yes | Done |
 | P7 | MVP Documentation and Deployment | Prepare README, run instructions, tests, artifact notes, and first public deployment. | Yes | Done |
-| P8 | Probability Calibration and Threshold Analysis | Improve probability honesty and explain decision threshold trade-offs. | No | Ready |
+| P8 | Probability Calibration and Threshold Analysis | Improve probability honesty and explain decision threshold trade-offs. | No | Done |
 | P9 | Explainability with SHAP | Add global and local model explanations with non-causal framing. | No | Future |
 | P10 | Model Scenario Explorer | Add carefully framed what-if simulations for selected modifiable inputs. | No | Future |
 | P11 | Batch Prediction Workflow | Add CSV upload, schema validation, templates, and downloadable predictions. | No | Future |
