@@ -252,7 +252,7 @@ P6 provides the planning evidence for this refinement: the validated single-bund
 
 ## Epic E6: Post-MVP Enhancements
 
-The P8 stories -- US-0601 (calibration evaluation and selection), US-0606 (threshold analysis and trade-offs), and US-0607 (schema-version-2 artifact and app integration) -- were refined to Ready on 2026-07-11, implemented on 2026-07-12/13, and closed on 2026-07-13 after implementation commit `5798a0e` was pushed and the Streamlit deployment passed its public smoke verification. D-018 and D-019 are Accepted, and all three P8 stories are Done. The leakage-safe protocol lives in `docs/ml-analysis-plan.md`, evidence in `docs/p8-calibration/report.md`, and execution history in `docs/iteration-log.md`. P9 was implemented and closed on 2026-07-14: D-020, D-021, and D-022 are Accepted; US-0602, US-0608, and US-0609 are Done; implementation commit `25c4ed4` was pushed; and the rebooted Streamlit deployment passed the mandatory public explanation and four-profile smoke verification. P10 remains Ready while its unstaged local implementation awaits manual review. D-023, D-024, and D-025 are Accepted from their ordered evidence gates; US-0605 and US-0610 are Done; and US-0611 is In Progress until commit, push, deployment, and mandatory public smoke verification. Batch prediction (P11) and fairness audit (P12) remain Deferred for later rolling-wave refinements.
+The P8 stories -- US-0601 (calibration evaluation and selection), US-0606 (threshold analysis and trade-offs), and US-0607 (schema-version-2 artifact and app integration) -- were refined to Ready on 2026-07-11, implemented on 2026-07-12/13, and closed on 2026-07-13 after implementation commit `5798a0e` was pushed and the Streamlit deployment passed its public smoke verification. D-018 and D-019 are Accepted, and all three P8 stories are Done. The leakage-safe protocol lives in `docs/ml-analysis-plan.md`, evidence in `docs/p8-calibration/report.md`, and execution history in `docs/iteration-log.md`. P9 was implemented and closed on 2026-07-14: D-020, D-021, and D-022 are Accepted; US-0602, US-0608, and US-0609 are Done; implementation commit `25c4ed4` was pushed; and the rebooted Streamlit deployment passed the mandatory public explanation and four-profile smoke verification. P10 was implemented and closed on 2026-07-15: D-023, D-024, and D-025 are Accepted; US-0605, US-0610, and US-0611 are Done; implementation commit `fb50ed9` was pushed; and the deployed Streamlit explorer passed the mandatory public frontend verification. Batch prediction (P11) and fairness audit (P12) remain Deferred for later rolling-wave refinements.
 
 | ID | User Story | Priority | Status | Acceptance Criteria |
 |---|---|---:|---|---|
@@ -264,7 +264,7 @@ The P8 stories -- US-0601 (calibration evaluation and selection), US-0606 (thres
 | US-0609 | As a non-technical user and technical reviewer, I want explanation communication at two levels so that the app stays understandable while GitHub evidence remains auditable. | P1 | Done | Provide a simple, progressive, visual Streamlit section similar to "How the model interprets this estimate" for a non-technical audience, while preserving the medical disclaimer; provide a reproducible technical report and evidence under `docs/p9-explainability/`; resolve D-022 before implementation chooses dynamic, precomputed, or hybrid local explanations; verify performance, privacy, regressions, and public deployment behavior; and never expose real dataset rows in the app or published artifacts. |
 | US-0605 | As a user, I want to compare my original model estimate with a controlled hypothetical scenario so that I can explore model sensitivity without treating it as medical advice. | P1 | Done | D-023 was resolved before engine/UI implementation from the complete 21-field BRFSS semantic audit. The accepted whitelist is exactly `PhysActivity`, `Fruits`, and `Veggies`; every other field is excluded with a documented reason. The result is described only as a hypothetical change in model output, never as an expected medical benefit, causal effect, recommendation, or way to reduce real risk. |
 | US-0610 | As a maintainer, I want a deterministic and independently tested scenario engine so that hypothetical comparisons cannot silently change the serving contract or original input. | P1 | Done | `src/scenarios.py` reuses `validate_input_values`, exact `FEATURE_COLUMNS` order, and the P8 `predict_risk_probability` contract; never mutates its baseline; rejects unknown, unapproved, missing, non-finite, incorrectly typed, or out-of-range changes; and implements the accepted one-field D-024 schema. Focused tests prove direct-scoring equality and the signed formula within absolute tolerance `1e-12`; no training, calibration, explanation, optimization, ranking, or persistence path exists. |
-| US-0611 | As a non-technical user, I want the scenario comparison presented clearly and safely in Streamlit so that I can distinguish a model experiment from a health prediction about changing my behavior. | P1 | In Progress | D-025 was resolved before integration. The local app provides the progressive original-versus-scenario view, explicit reset, neutral positive/negative/zero treatment, effective changes, non-causal/non-medical statement, and controlled scenario-only fallback while preserving P8, P9, the disclaimer, privacy boundary, and reference displays. Local verification is complete; manual review, commit, push, deployment, and the mandatory healthy-path public smoke test remain before Done. |
+| US-0611 | As a non-technical user, I want the scenario comparison presented clearly and safely in Streamlit so that I can distinguish a model experiment from a health prediction about changing my behavior. | P1 | Done | D-025 was resolved before integration. The app provides the progressive original-versus-scenario view, explicit reset, neutral positive/negative/zero treatment, effective changes, non-causal/non-medical statement, and controlled scenario-only fallback while preserving P8, P9, the disclaimer, privacy boundary, and reference displays. Implementation commit `fb50ed9` was pushed and mandatory public frontend verification passed on 2026-07-15. |
 | US-0603 | As a user, I want batch CSV prediction so that multiple cases can be scored at once. | P2 | Deferred | CSV upload, validation report, and downloadable predictions are implemented. |
 | US-0604 | As a reviewer, I want a fairness audit so that subgroup performance is not ignored. | P2 | Deferred | Metrics are reported by sex, age group, and income group where applicable. |
 
@@ -410,7 +410,7 @@ P9 explains the final probability contract selected in P8: the frozen D-016 `His
 
 ### Iteration 10 -- P10 Model Scenario Explorer
 
-P10 now has a complete unstaged local implementation ready for manual review. It adds a constrained sensitivity explorer around the unchanged P8 probability contract, comparing the submitted profile with one hypothetical variant. It does not estimate what would happen to a person's health after an intervention. The frozen D-016 model, schema-version-2 artifact, `calibration_method = none`, D-019 probability-only product, P9 SHAP contract, and four public reference estimates remain unchanged. P10 stays Ready and US-0611 stays In Progress until the reviewed implementation is committed, pushed, deployed, and publicly verified.
+P10 is complete. It adds a constrained sensitivity explorer around the unchanged P8 probability contract, comparing the submitted profile with one hypothetical variant. It does not estimate what would happen to a person's health after an intervention. The frozen D-016 model, schema-version-2 artifact, `calibration_method = none`, D-019 probability-only product, P9 SHAP contract, and four public reference estimates remain unchanged. Implementation commit `fb50ed9` was pushed and the updated Streamlit application passed mandatory public frontend verification on 2026-07-15.
 
 #### Increment 1 -- Feature Semantics and Safety Contract (approximately 1 day)
 
@@ -442,7 +442,7 @@ P10 now has a complete unstaged local implementation ready for manual review. It
 - [x] Verify that the original estimates and exact displays for the four reference profiles remain 0.3%, 60.0%, 70.0%, and 79.9% and that their P9 explanations still render.
 - [x] Verify that `models/diabetes_risk_model.joblib` retains SHA-256 `957c14ff5a490bbc60822121a889f92ee2a6a20f797eef741a710d887ecc9216` and `models/shap_background_v1.json` retains SHA-256 `73d1ff21e3c98ee79fa7d72758517047f13e5f454d7ff95edb1ee93812cca120`; neither is regenerated.
 - [x] Confirm Streamlit performs no fitting, calibration, artifact generation, raw-data access, global SHAP analysis, scenario persistence, or external input logging.
-- [ ] Push the reviewed implementation, reboot/redeploy the existing Streamlit application, and pass the mandatory healthy-path public smoke test before marking US-0611 or P10 Done. Invalid/error paths remain local/headless rather than deliberately breaking the public app.
+- [x] Push reviewed implementation commit `fb50ed9`, reboot/redeploy the existing Streamlit application, and pass the mandatory healthy-path public smoke test before marking US-0611 or P10 Done. Completed 2026-07-15; invalid/error paths remain covered locally/headlessly rather than by deliberately breaking the public app.
 
 #### Expected Tests for P10
 
@@ -455,9 +455,9 @@ P10 now has a complete unstaged local implementation ready for manual review. It
 - [x] Existing reference-profile probabilities, P9 local explanations, disclaimer, artifact-error behavior, and explanation-error fallback remain unchanged; failed original resubmission and artifact-hash changes invalidate prior session results before rendering.
 - [x] Source and headless guards prohibit optimization, ranked recommendations, scenario-specific SHAP, persistence, external logging, fitting, raw-data reads, and artifact regeneration in the app.
 - [x] No train, calibration, or test row is needed to run the scenario engine or Streamlit path; test data cannot influence D-023 through D-025 or the product wording.
-- [ ] The deployed healthy path passes a mandatory public smoke test after the implementation is pushed.
+- [x] The deployed healthy path passes a mandatory public smoke test after the implementation is pushed. The user confirmed the planned frontend cases, and an independent public check confirmed prediction, P9 preservation, progressive P10 rendering, the exact whitelist, neutral safety wording, the disclaimer, and no browser-console errors.
 
-#### Planned P10 Deliverables
+#### P10 Deliverables
 
 - `src/scenarios.py` with the pure validated comparison contract.
 - `tests/test_scenarios.py` plus controlled regression/headless additions for the app.
@@ -477,12 +477,12 @@ P10 now has a complete unstaged local implementation ready for manual review. It
 
 #### Definition of Done for P10
 
-- [ ] US-0605, US-0610, and US-0611 satisfy their acceptance criteria.
+- [x] US-0605, US-0610, and US-0611 satisfy their acceptance criteria.
 - [x] D-023, D-024, and D-025 are Accepted from recorded pre-integration evidence, not assumed during planning.
 - [x] The approved editable-feature whitelist and all exclusions are traceable to exact BRFSS semantics and safe communication constraints.
 - [x] The pure engine is deterministic, validated, non-mutating, and exactly consistent with `predict_risk_probability`.
 - [x] Streamlit clearly separates the submitted estimate from one hypothetical scenario, provides reset, and uses non-causal, non-clinical, non-prescriptive wording.
 - [x] The probability-only P8 contract, P9 explanations, medical disclaimer, four reference displays, and both reviewed artifact hashes remain unchanged.
 - [x] The complete local suite and Streamlit headless checks pass.
-- [ ] The updated public application passes mandatory healthy-path smoke verification after deployment.
-- [ ] P10 moves from Ready to Done only after the reviewed implementation is committed, pushed, deployed, and publicly verified.
+- [x] The updated public application passes mandatory healthy-path smoke verification after deployment.
+- [x] P10 moved from Ready to Done after implementation commit `fb50ed9` was pushed, deployed, and publicly verified on 2026-07-15.

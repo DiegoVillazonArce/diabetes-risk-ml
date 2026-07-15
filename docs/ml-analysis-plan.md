@@ -330,7 +330,7 @@ Implemented deliverables are `src/explainability.py`, `src/feature_labels.py`, `
 
 ## Scenario Exploration Plan
 
-P10 implements a constrained scenario explorer as a model-sensitivity tool. For one already validated submitted profile, it constructs at most one hypothetical variant, scores both through the unchanged P8 `predict_risk_probability` contract, and reports the signed difference in model-estimate percentage points. The comparison is not an intervention analysis and cannot estimate a causal health effect, treatment effect, future outcome, or achievable risk reduction. The implementation is locally complete and awaiting review; P10 remains Ready because commit, push, deployment, and public smoke verification are still pending.
+P10 implements a constrained scenario explorer as a model-sensitivity tool. For one already validated submitted profile, it constructs at most one hypothetical variant, scores both through the unchanged P8 `predict_risk_probability` contract, and reports the signed difference in model-estimate percentage points. The comparison is not an intervention analysis and cannot estimate a causal health effect, treatment effect, future outcome, or achievable risk reduction. Implementation commit `fb50ed9` was pushed and the updated Streamlit application passed mandatory public frontend verification on 2026-07-15, completing P10.
 
 The implementation follows this order:
 
@@ -340,8 +340,8 @@ The implementation follows this order:
 4. **Completed:** implement a pure, deterministic comparison engine that copies rather than mutates the submitted profile, validates only approved changes, preserves all 21 fields in exact order, and scores both profiles through the production probability helper.
 5. **Completed:** resolve D-024 before UI integration: one field at most, immutable structured output, signed scenario-minus-original delta, absolute tolerance `1e-12`, exact reset, and no optimization, ranked alternatives, presets, threshold categories, or scenario SHAP.
 6. **Completed:** resolve D-025 from focused UX, privacy, failure-mode, and performance evidence before Streamlit integration.
-7. **Completed locally:** integrate the accepted contract with progressive disclosure: original and hypothetical estimates, exact changed inputs, signed percentage-point difference, reset, and a visible explanation that the result describes model response only.
-8. **In progress:** run complete/headless/local visual verification and confirm both official artifact hashes and all four original reference displays are unchanged. Review, commit, push, deployment, and the mandatory healthy-path public smoke test remain external closure steps.
+7. **Completed:** integrate the accepted contract with progressive disclosure: original and hypothetical estimates, exact changed inputs, signed percentage-point difference, reset, and a visible explanation that the result describes model response only.
+8. **Completed:** run complete/headless/local visual verification, confirm both official artifact hashes and all four original reference displays are unchanged, push implementation commit `fb50ed9`, deploy the update, and pass mandatory public frontend verification.
 
 Contract rules:
 
@@ -354,7 +354,7 @@ Contract rules:
 - Streamlit performs no fitting, calibration, optimization, raw-data access, artifact generation, global explanation, scenario persistence, or external input logging. Widget state is transient; the latest validated result is stored with the model-artifact SHA-256 and is cleared if a new original score fails or the current hash differs.
 - Neither `models/diabetes_risk_model.joblib` nor `models/shap_background_v1.json` is regenerated for P10. P11 batch prediction, P12 fairness, and broader explanation/UX polish remain separate phases.
 
-The technical evidence is recorded in `docs/p10-scenarios/report.md`: semantic audit, approved/excluded features, decisions, exact comparison contract, tests, limitations, artifact hashes, and the still-pending public verification. Streamlit provides only the concise everyday-language explanation needed to distinguish the original estimate from the hypothetical model experiment.
+The technical evidence is recorded in `docs/p10-scenarios/report.md`: semantic audit, approved/excluded features, decisions, exact comparison contract, tests, limitations, artifact hashes, and public verification. Streamlit provides only the concise everyday-language explanation needed to distinguish the original estimate from the hypothetical model experiment.
 
 ## Fairness Analysis Plan
 

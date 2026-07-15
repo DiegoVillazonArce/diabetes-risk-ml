@@ -2,7 +2,7 @@
 
 ## Status and Scope
 
-P10 is **Ready** and its unstaged local implementation is complete and ready for manual review. It is not publicly deployed and cannot move to Done until a reviewed commit is created and pushed, the existing Streamlit deployment is updated, and the mandatory public smoke test passes. US-0605 and US-0610 are Done; US-0611 remains In Progress at that external closure boundary.
+P10 is **Done**. US-0605, US-0610, and US-0611 are complete. Reviewed implementation commit `fb50ed9` was pushed, the existing Streamlit deployment was updated, and mandatory public frontend verification passed on 2026-07-15.
 
 The explorer is a constrained model-sensitivity comparison. It keeps the frozen D-016 `HistGradientBoostingClassifier`, schema-version-2 P8 artifact, `calibration_method = none`, D-019 probability-only policy, and P9 explanation contract unchanged. It compares one submitted profile with one hypothetical variant; it does not estimate an intervention, future health outcome, treatment effect, or achievable change in a person's real diabetes risk.
 
@@ -83,7 +83,7 @@ The review was completed before changing `app/streamlit_app.py`:
 - **Failure behavior:** catch a scenario validation/scoring error inside the scenario section, show a controlled warning/details expander, and leave the already-rendered original probability, P9 explanation, and disclaimer unchanged. In contrast, if a newly submitted original profile cannot be scored, invalidate the prior saved result and its scenario state so no earlier probability can appear to belong to the failed submission.
 - **Privacy/state:** retain the latest validated original profile only in Streamlit's active in-memory session so scenario-widget reruns have a stable baseline. Store the exact model-artifact SHA-256 with that result and verify it on every rerun; a mismatch invalidates the result and requires resubmission. Widget/baseline state is replaced by the next valid submission and is never written, externally logged, sent to analytics, or exposed as an artifact. This remains the same transient active-session boundary documented by P9.
 - **Runtime:** the path loads no CSV and performs exactly two one-row serving calls. A 100-run measurement against the official artifact observed median `0.006492450` seconds, p95 `0.007815600` seconds, and maximum `0.634011100` seconds (the first cold call and joblib CPU-detection warning); subsequent calls remained well below interactive latency.
-- **Closure boundary:** local/headless invalid paths are required, but only the healthy path will be tested publicly after review, commit, push, and deployment. D-025 acceptance does not mark US-0611 or P10 Done.
+- **Closure boundary:** local/headless invalid paths remain required, while only the healthy path is exercised publicly so the deployed application is not deliberately broken. Implementation commit `fb50ed9` and the successful public verification completed US-0611 and P10 on 2026-07-15.
 
 The integration implements this accepted policy in `app/streamlit_app.py`. A generation-scoped widget key resets browser-visible state on every valid new submission and on the explicit reset, while the saved original result remains stable for ordinary scenario reruns only when its stored SHA-256 matches the currently loaded artifact. `tests/test_app.py` covers progressive disclosure, the exact whitelist, neutral output, reset, new-submission reset, failed-original invalidation, artifact-hash invalidation, controlled scenario failure, original P9 preservation, disclaimer preservation, and prohibited runtime/language paths.
 
@@ -131,8 +131,20 @@ A real local Streamlit server at `http://localhost:8501/` was exercised through 
 - Follow-up headless checks confirmed that a failed new original prediction clears the prior result and that changing the artifact SHA-256 invalidates the saved result before P9 or P10 renders.
 - Browser console error log: empty.
 
-## Files and Closure Boundary
+### Public Deployment Verification
 
-P10 creates `src/scenarios.py`, `tests/test_scenarios.py`, and this report. It modifies `app/streamlit_app.py`, `tests/test_app.py`, `tests/test_reference_profiles.py`, `README.md`, `docs/backlog.md`, `docs/decisions.md`, `docs/iteration-log.md`, and `docs/ml-analysis-plan.md`. The existing unstaged P10 refinement in `docs/roadmap.md` is preserved with P10 at Ready.
+Reviewed implementation commit `fb50ed9` was pushed to `main` and deployed through the existing Streamlit Community Cloud application on 2026-07-15. The user confirmed the planned frontend case set. An independent public healthy-path check additionally confirmed:
 
-No file was staged, committed, or pushed; no deployment was changed or restarted; and no public smoke test was claimed. Manual review, commit, push, Streamlit deployment/restart, and mandatory healthy-path public verification remain pending. Only after those steps may US-0611 and P10 move to Done; P11-P13 remain Future.
+- The public application started and produced a valid original estimate.
+- The P9 explanation remained visible and tied to the original submitted profile.
+- The P10 explorer appeared only after prediction and offered exactly `PhysActivity`, `Fruits`, and `Veggies`, plus the no-change option.
+- Selecting an approved field produced the original/hypothetical comparison, effective-change text, neutral model-sensitivity language, and the existing medical disclaimer.
+- The browser console reported no errors.
+
+Invalid-artifact, failed-original, explanation-error, and scenario-error paths remain covered locally/headlessly instead of deliberately damaging the public deployment.
+
+## Files and Closure
+
+P10 created `src/scenarios.py`, `tests/test_scenarios.py`, and this report. It modified `app/streamlit_app.py`, `tests/test_app.py`, `tests/test_reference_profiles.py`, `README.md`, `docs/backlog.md`, `docs/decisions.md`, `docs/iteration-log.md`, `docs/ml-analysis-plan.md`, and `docs/roadmap.md`.
+
+The implementation shipped in commit `fb50ed9` without regenerating either reviewed artifact. Following deployment and successful public verification, US-0611 and P10 moved to Done on 2026-07-15. P11-P13 remain Future.
