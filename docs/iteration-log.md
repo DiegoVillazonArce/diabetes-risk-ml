@@ -552,34 +552,41 @@ The implementation satisfies the reproducibility, fidelity, privacy, wording, re
 - P10 was refined through a separate rolling-wave planning step on 2026-07-15 and is now Ready; no scenario implementation is part of the P9 closure.
 - Retain CI and `skops` as independent quality/packaging candidates without adding either to P9's critical path.
 
-## Next Iteration Planning: P10 Model Scenario Explorer
+## Iteration 10: P10 Model Scenario Explorer
 
 **Date:** 2026-07-15
 
-**Status:** Ready
+**Status:** In Progress (local implementation ready for review; roadmap P10 remains Ready)
 
 **Goal:** Add a constrained original-versus-hypothetical model scenario comparison for explicitly approved fields, while preserving the P8 probability and P9 explanation contracts and preventing causal, clinical, or prescriptive interpretation.
 
-### Refined Stories
+### Stories
 
-- **US-0605 -- controlled scenario policy and user contract (P1, Ready):** approve an editable-feature whitelist from exact BRFSS semantics and present the comparison only as model sensitivity.
-- **US-0610 -- deterministic scenario engine (P1, Ready):** copy and validate one baseline/variant pair, score both through `predict_risk_probability`, and return an exact signed percentage-point delta without mutation, optimization, or persistence.
-- **US-0611 -- safe Streamlit integration and public verification (P1, Ready):** communicate the original and hypothetical outputs progressively, preserve the disclaimer and P9 behavior, and require public smoke verification before closure.
+- **US-0605 -- controlled scenario policy and user contract (P1, Done):** D-023 accepts exactly `PhysActivity`, `Fruits`, and `Veggies` after the complete 21-field BRFSS semantic/safety audit; the contract presents them only as hypothetical model inputs.
+- **US-0610 -- deterministic scenario engine (P1, Done):** `src/scenarios.py` copies and validates one baseline/variant pair, scores both through `predict_risk_probability`, and returns the exact signed percentage-point delta without mutation, optimization, or persistence.
+- **US-0611 -- safe Streamlit integration and public verification (P1, In Progress):** the local progressive comparison, reset, disclaimer, P9 preservation, and controlled fallback are implemented and headlessly tested. Review, commit, push, deployment, and public smoke verification remain mandatory before Done.
 
-### Planned Increments
+### Increments
 
-1. **Increment 1 -- feature semantics and safety contract (approximately 1 day).** Audit all 21 features for meaning, encoding, domain, temporal semantics, reversibility, and communication risk. Evaluate `BMI`, `PhysActivity`, `Fruits`, `Veggies`, and `HvyAlcoholConsump` as candidates, not approvals. Explicitly exclude `Smoker` as a present improvement lever because it represents having smoked at least 100 cigarettes over a lifetime. Resolve D-023 before engine or UI implementation.
-2. **Increment 2 -- deterministic scenario engine (approximately 1 day).** Implement the pure baseline-copy/change/validate/score contract, preserve exact feature order and non-edited values, reject unapproved or invalid changes, and prove equality with direct production scoring. Resolve D-024 and record evidence before UI integration.
-3. **Increment 3 -- Streamlit communication and integration (approximately 1-2 days).** Resolve D-025 first, then implement the accepted placement, progressive disclosure, reset, neutral positive/negative/zero delta treatment, transient state, and error fallback. Keep P9's submitted-estimate explanation separate; no scenario-specific SHAP is added.
-4. **Increment 4 -- regression, deployment, and closure (approximately 1 day).** Run complete/headless verification, confirm the P8 model SHA-256 `957c14ff5a490bbc60822121a889f92ee2a6a20f797eef741a710d887ecc9216`, P9 background SHA-256 `73d1ff21e3c98ee79fa7d72758517047f13e5f454d7ff95edb1ee93812cca120`, and four original reference displays are unchanged, push and redeploy the reviewed implementation, and pass the mandatory healthy-path public smoke test before moving P10 to Done.
+1. **Increment 1 -- feature semantics and safety contract: completed.** The audit covers all 21 fields. The initial five candidates were assessed rather than assumed: `PhysActivity`, `Fruits`, and `Veggies` were accepted; `BMI` and `HvyAlcoholConsump` were rejected. `Smoker` and all demographic, diagnostic, historical, subjective, access, and functional fields are excluded. D-023 was resolved before engine work.
+2. **Increment 2 -- deterministic scenario engine: completed.** The pure baseline-copy/change/validate/score contract preserves order and non-edited values, rejects unapproved/invalid changes, and matches direct production scoring. D-024 was resolved before UI integration; 43/43 focused engine tests passed.
+3. **Increment 3 -- Streamlit communication and integration: completed locally.** D-025 was accepted first from UX/privacy/failure/performance evidence. The app now progressively renders the neutral original/hypothetical/difference comparison, effective change, exact reset, transient state, non-causal explanation, and scenario-only fallback after a valid result. P9 stays bound only to the original profile.
+4. **Increment 4 -- regression, deployment, and closure: in progress.** Local focused, full-suite, dependency, diff, hash, and visual evidence is recorded in `docs/p10-scenarios/report.md`. No reviewed commit, push, deployment, restart, or public smoke test is part of this local implementation turn; those remain mandatory before moving P10 to Done.
 
-### Pending Decisions
+### Resolved Decisions
 
-- **D-023 -- Pending:** approved editable-feature whitelist, exact domains/labels, and excluded-field rationale. No candidate field is public until this decision is Accepted from the complete semantic audit.
-- **D-024 -- Pending:** scenario engine and comparison contract, including simultaneous edits, signed delta, validation, reset, and explicit prohibition of optimization, ranking, presets, threshold labels, and scenario-specific SHAP.
-- **D-025 -- Pending:** Streamlit delivery, wording, transient-state, fallback, privacy, and public-verification policy.
+- **D-023 -- Accepted 2026-07-15:** exactly `PhysActivity`, `Fruits`, and `Veggies` are editable binary hypothetical inputs; every other field is excluded by the recorded semantic/safety audit.
+- **D-024 -- Accepted 2026-07-15:** one supplied field at most; ordered immutable baseline/hypothetical results backed by read-only mappings; both scores use `predict_risk_probability`; delta is `100 * (hypothetical - original)` with absolute tolerance `1e-12`; no-change/reset is exact; no search, optimization, ranking, presets, thresholds, labels, persistence, or scenario SHAP.
+- **D-025 -- Accepted 2026-07-15:** progressive post-prediction placement; neutral equal-weight metrics; effective-change text and explicit reset; artifact-hash-bound active-session-only state; invalidation after failed original scoring or hash change; controlled scenario-only fallback; original-only P9; visible non-causal/non-medical wording and disclaimer. Acceptance does not waive public verification.
 
-No decision outcome is accepted by this planning entry. Each decision must be resolved at its named gate before the dependent implementation proceeds.
+The decision record and evidence are in `docs/decisions.md` and `docs/p10-scenarios/report.md`; the gates were resolved in order before their dependent implementation steps.
+
+### Local Implementation Evidence
+
+- Added `src/scenarios.py`, `tests/test_scenarios.py`, and `docs/p10-scenarios/report.md`; integrated the accepted contract in `app/streamlit_app.py` and extended app/reference regression coverage.
+- The UI keeps the latest validated original result only in Streamlit active-session memory and binds it to the exact artifact SHA-256. Failed original scoring or a hash mismatch clears it; a scenario-only failure retains the matching original/P9 result. The UI exposes only the D-023 fields and treats positive/negative/zero deltas with the same wording and metric hierarchy.
+- Verification evidence, exact test counts, reference probabilities, artifact hashes, and any local visual-review findings are recorded in the P10 technical report. All changes remain unstaged for manual review.
+- External closure is intentionally pending: manual review, commit, push, deployment/restart, and mandatory healthy-path public smoke verification.
 
 ### Guardrails
 
@@ -592,12 +599,12 @@ No decision outcome is accepted by this planning entry. Each decision must be re
 - Add no high/low-risk labels or decision thresholds. Do not add scenario-specific SHAP or reinterpret P9 contributions as intervention effects.
 - Keep P11 batch prediction, P12 fairness analysis, and broader P9 explanation/UX polish outside the P10 critical path.
 
-### Planned Deliverables
+### Deliverables
 
-- `src/scenarios.py` with the validated pure comparison contract.
-- `tests/test_scenarios.py` and controlled app/headless regression additions.
-- `docs/p10-scenarios/report.md` containing the semantic audit, approved/excluded features, accepted decisions, exact numerical contract, limitations, test evidence, artifact hashes, and deployment verification.
-- Controlled `app/streamlit_app.py` changes only after D-023, D-024, and D-025 are resolved.
+- `src/scenarios.py` implements the validated pure comparison contract.
+- `tests/test_scenarios.py` and controlled app/headless regression additions cover the engine and delivery contract.
+- `docs/p10-scenarios/report.md` contains the semantic audit, approved/excluded features, accepted decisions, exact numerical contract, limitations, local test/visual evidence, artifact hashes, and the pending deployment boundary.
+- `app/streamlit_app.py` was changed only after D-023, D-024, and D-025 were resolved.
 - No new or regenerated model, calibrator, SHAP-background, raw-data, or row-level evidence artifact.
 
 ### Expected Tests

@@ -199,9 +199,13 @@ def test_app_displays_the_recorded_profile_expectation(official_bundle, profile)
     app.button[0].set_value(True).run()
 
     assert not app.exception
-    assert len(app.metric) == 2
+    assert len(app.metric) == 5
     assert app.metric[0].value == profile.expected_display
-    assert app.metric[1].label == "Model reference estimate"
+    metrics_by_label = {metric.label: metric.value for metric in app.metric}
+    assert "Model reference estimate" in metrics_by_label
+    assert metrics_by_label["Original estimate"] == profile.expected_display
+    assert metrics_by_label["Hypothetical scenario"] == profile.expected_display
+    assert metrics_by_label["Difference"] == "0.00 pp"
     assert any(
         subheader.value == "How the model interprets this estimate"
         for subheader in app.subheader

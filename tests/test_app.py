@@ -18,7 +18,7 @@ import pandas as pd
 import pytest
 import streamlit as st
 
-from src import artifacts, calibration, data, explainability
+from src import artifacts, calibration, data, explainability, scenarios
 from tests.test_modeling import make_splits
 
 APP_PATH = data.PROJECT_ROOT / "app" / "streamlit_app.py"
@@ -159,7 +159,7 @@ def test_app_source_never_trains_or_reloads_data():
         assert forbidden not in source
 
 
-def test_app_source_never_runs_global_shap_or_persists_inputs():
+def test_app_source_never_runs_global_shap_or_persists_inputs_externally():
     source = APP_PATH.read_text(encoding="utf-8")
     for forbidden in (
         "generate_evidence",
@@ -168,9 +168,12 @@ def test_app_source_never_runs_global_shap_or_persists_inputs():
         "global_importance",
         "to_csv",
         "write_text",
-        "session_state",
+        "to_json",
+        "sqlite",
+        "analytics",
     ):
         assert forbidden not in source
+    assert "session_state" in source
 
 
 def test_explainer_cache_is_keyed_by_artifact_hash(monkeypatch):
@@ -334,7 +337,7 @@ def test_app_renders_and_predicts_headlessly(tmp_artifact):
     app.button[0].set_value(True).run()
 
     assert not app.exception
-    assert len(app.metric) == 2
+    assert len(app.metric) == 5
     displayed = app.metric[0].value
     assert displayed.endswith("%")
     probability = float(displayed.rstrip("%")) / 100
@@ -344,6 +347,16 @@ def test_app_renders_and_predicts_headlessly(tmp_artifact):
         subheader.value == "How the model interprets this estimate"
         for subheader in app.subheader
     )
+    assert any(
+        subheader.value == "Model scenario explorer"
+        for subheader in app.subheader
+    )
+    metrics_by_label = {metric.label: metric.value for metric in app.metric}
+    assert metrics_by_label["Original estimate"] == displayed
+    assert metrics_by_label["Hypothetical scenario"] == displayed
+    assert metrics_by_label["Difference"] == "0.00 pp"
+    assert len(app.button) == 2
+    assert app.button[1].label == "Reset to original"
     rendered_text = " ".join(
         element.value for element in [*app.markdown, *app.text]
     ).lower()
@@ -362,9 +375,17 @@ def test_explanation_is_hidden_until_a_valid_submission(tmp_artifact):
         subheader.value == "How the model interprets this estimate"
         for subheader in app.subheader
     )
+    assert not any(
+        subheader.value == "Model scenario explorer"
+        for subheader in app.subheader
+    )
     app.button[0].set_value(True).run()
     assert any(
         subheader.value == "How the model interprets this estimate"
+        for subheader in app.subheader
+    )
+    assert any(
+        subheader.value == "Model scenario explorer"
         for subheader in app.subheader
     )
 
@@ -383,7 +404,7 @@ def test_app_keeps_probability_visible_when_explainer_fails(
     app.button[0].set_value(True).run()
 
     assert not app.exception
-    assert len(app.metric) == 1
+    assert len(app.metric) == 4
     assert app.metric[0].value.endswith("%")
     assert any(
         "explanation is temporarily unavailable" in warning.value.lower()
@@ -403,6 +424,241 @@ def test_app_explanation_wording_is_non_causal_and_probability_only():
         "low-risk label",
     ):
         assert forbidden_claim not in source
+
+
+def test_scenario_language_is_neutral_for_positive_negative_and_zero_deltas():
+    module = import_app("streamlit_app_scenario_language")
+
+    assert module.format_scenario_delta(1.234) == "+1.23 pp"
+    assert module.format_scenario_delta(-1.234) == "-1.23 pp"
+    assert module.format_scenario_delta(0.0) == "0.00 pp"
+    statements = [
+        module.scenario_delta_statement(delta)
+        for delta in (1.234, -1.234, 0.0)
+    ]
+    assert all(
+        statement.startswith("The model estimate changed by")
+        for statement in statements
+    )
+    source = APP_PATH.read_text(encoding="utf-8").lower()
+    for forbidden_claim in (
+        "reduce your risk",
+        "improve your health",
+        "best scenario",
+        "you should",
+        "this change will prevent diabetes",
+        "recommended",
+        "high risk",
+        "low risk",
+        "high-risk",
+        "low-risk",
+    ):
+        assert forbidden_claim not in source
+
+
+def test_scenario_ui_exposes_only_the_d023_whitelist(tmp_artifact):
+    from streamlit.testing.v1 import AppTest
+
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30)
+    app.run()
+    app.button[0].set_value(True).run()
+
+    selector = next(
+        item for item in app.selectbox if item.label == "Input to vary"
+    )
+    assert selector.options == [
+        "No input change",
+        "Physical activity in the past 30 days",
+        "Eats fruit at least once per day",
+        "Eats vegetables at least once per day",
+    ]
+    source = APP_PATH.read_text(encoding="utf-8")
+    assert "EDITABLE_SCENARIO_FEATURES" in source
+    assert "predict_risk_probability(bundle, hypothetical" not in source
+
+
+def test_scenario_reset_restores_the_exact_original_comparison(tmp_artifact):
+    from streamlit.testing.v1 import AppTest
+
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30)
+    app.run()
+    app.button[0].set_value(True).run()
+    original_display = app.metric[0].value
+
+    feature_selector = next(
+        item for item in app.selectbox if item.label == "Input to vary"
+    )
+    feature_selector.select("PhysActivity").run()
+    value_selector = next(
+        item for item in app.selectbox if item.label == "Hypothetical value"
+    )
+    value_selector.select(1).run()
+    app.button[1].click().run()
+
+    assert not app.exception
+    metrics_by_label = {metric.label: metric.value for metric in app.metric}
+    assert metrics_by_label["Original estimate"] == original_display
+    assert metrics_by_label["Hypothetical scenario"] == original_display
+    assert metrics_by_label["Difference"] == "0.00 pp"
+    feature_selector = next(
+        item for item in app.selectbox if item.label == "Input to vary"
+    )
+    assert feature_selector.value is None
+    assert any(
+        "all 21 original inputs are preserved" in caption.value
+        for caption in app.caption
+    )
+
+
+def test_new_valid_submission_resets_scenario_widgets_and_comparison(tmp_artifact):
+    from streamlit.testing.v1 import AppTest
+
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30)
+    app.run()
+    app.button[0].set_value(True).run()
+
+    feature_selector = next(
+        item for item in app.selectbox if item.label == "Input to vary"
+    )
+    feature_selector.select("PhysActivity").run()
+    value_selector = next(
+        item for item in app.selectbox if item.label == "Hypothetical value"
+    )
+    value_selector.select(1).run()
+    app.button[0].set_value(True).run()
+
+    assert not app.exception
+    feature_selector = next(
+        item for item in app.selectbox if item.label == "Input to vary"
+    )
+    assert feature_selector.value is None
+    assert not any(
+        item.label == "Hypothetical value" for item in app.selectbox
+    )
+    metrics_by_label = {metric.label: metric.value for metric in app.metric}
+    assert metrics_by_label["Original estimate"] == (
+        metrics_by_label["Hypothetical scenario"]
+    )
+    assert metrics_by_label["Difference"] == "0.00 pp"
+
+
+def test_failed_new_prediction_clears_the_previous_result(
+    tmp_artifact, monkeypatch
+):
+    from streamlit.testing.v1 import AppTest
+
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30)
+    app.run()
+    app.button[0].set_value(True).run()
+    assert app.metric
+
+    def fail_prediction(*args, **kwargs):
+        raise ValueError("controlled original scoring failure")
+
+    monkeypatch.setattr(
+        artifacts, "predict_risk_probability", fail_prediction
+    )
+    app.button[0].set_value(True).run()
+
+    assert not app.exception
+    assert any(
+        "could not score this case" in error.value.lower()
+        for error in app.error
+    )
+    assert not app.metric
+    assert not any(
+        subheader.value == "How the model interprets this estimate"
+        for subheader in app.subheader
+    )
+    assert not any(
+        subheader.value == "Model scenario explorer"
+        for subheader in app.subheader
+    )
+    assert any("medical disclaimer" in warning.value.lower() for warning in app.warning)
+
+
+def test_artifact_hash_change_invalidates_the_saved_result(
+    tmp_artifact, monkeypatch
+):
+    from streamlit.testing.v1 import AppTest
+
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30)
+    app.run()
+    app.button[0].set_value(True).run()
+    assert app.metric
+
+    monkeypatch.setattr(
+        explainability,
+        "artifact_sha256",
+        lambda path: "f" * 64,
+    )
+    app.run()
+
+    assert not app.exception
+    assert not app.metric
+    assert not any(
+        subheader.value == "How the model interprets this estimate"
+        for subheader in app.subheader
+    )
+    assert not any(
+        subheader.value == "Model scenario explorer"
+        for subheader in app.subheader
+    )
+    assert any(
+        "artifact changed during this session" in info.value.lower()
+        for info in app.info
+    )
+    assert any("medical disclaimer" in warning.value.lower() for warning in app.warning)
+
+
+def test_scenario_failure_preserves_original_and_p9_explanation(
+    tmp_artifact, monkeypatch
+):
+    from streamlit.testing.v1 import AppTest
+
+    def fail_scenario(*args, **kwargs):
+        raise ValueError("controlled scenario failure")
+
+    monkeypatch.setattr(scenarios, "compare_scenario", fail_scenario)
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30)
+    app.run()
+    app.button[0].set_value(True).run()
+
+    assert not app.exception
+    assert app.metric[0].label == (
+        "Model-estimated probability of diabetes or prediabetes"
+    )
+    assert app.metric[0].value.endswith("%")
+    assert any(
+        subheader.value == "How the model interprets this estimate"
+        for subheader in app.subheader
+    )
+    assert any(
+        "hypothetical scenario is temporarily unavailable" in warning.value.lower()
+        for warning in app.warning
+    )
+    assert any("medical disclaimer" in warning.value.lower() for warning in app.warning)
+
+
+def test_scenario_ui_has_no_search_ranking_presets_or_scenario_shap():
+    source = APP_PATH.read_text(encoding="utf-8").lower()
+    for forbidden in (
+        "optimize",
+        "optimal scenario",
+        "scenario ranking",
+        "rank scenarios",
+        "recommended preset",
+        "scenario preset",
+        "explain_scenario",
+    ):
+        assert forbidden not in source
+    assert source.count("render_local_explanation(") == 2
 
 
 def test_app_shows_clear_error_when_artifact_is_missing(tmp_path, monkeypatch):

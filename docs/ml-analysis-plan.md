@@ -330,31 +330,31 @@ Implemented deliverables are `src/explainability.py`, `src/feature_labels.py`, `
 
 ## Scenario Exploration Plan
 
-P10 will evaluate a constrained scenario explorer as a model-sensitivity tool. For one already validated submitted profile, it will construct at most one hypothetical variant, score both through the unchanged P8 `predict_risk_probability` contract, and report the signed difference in model-estimate percentage points. The comparison is not an intervention analysis and cannot estimate a causal health effect, treatment effect, future outcome, or achievable risk reduction.
+P10 implements a constrained scenario explorer as a model-sensitivity tool. For one already validated submitted profile, it constructs at most one hypothetical variant, scores both through the unchanged P8 `predict_risk_probability` contract, and reports the signed difference in model-estimate percentage points. The comparison is not an intervention analysis and cannot estimate a causal health effect, treatment effect, future outcome, or achievable risk reduction. The implementation is locally complete and awaiting review; P10 remains Ready because commit, push, deployment, and public smoke verification are still pending.
 
 The implementation follows this order:
 
-1. Audit the exact BRFSS meaning, encoding, valid domain, temporal meaning, reversibility, and communication risk of all 21 features.
-2. Evaluate `BMI`, `PhysActivity`, `Fruits`, `Veggies`, and `HvyAlcoholConsump` as candidates only. Candidate status is not approval for deployment.
-3. Resolve D-023 with an explicit user-editable whitelist and excluded-field rationale before engine or UI work. Age, sex, education, and income cannot be framed as improvement levers. `Smoker` is excluded because it records whether the respondent has smoked at least 100 cigarettes over a lifetime, not a reversible present behavior. Diagnoses, historical events, access-to-care fields, and subjective health summaries remain excluded absent explicit contrary evidence and safe wording.
-4. Implement a pure, deterministic comparison engine that copies rather than mutates the submitted profile, validates only approved changes, preserves all 21 fields in exact order, and scores both profiles through the production probability helper.
-5. Resolve D-024 before UI integration: freeze the number of editable fields, scenario/result schema, signed-delta convention, numerical tolerance, reset behavior, and prohibition of optimization, ranked alternatives, recommended presets, or threshold categories.
-6. Resolve D-025 from focused UX, privacy, failure-mode, and performance evidence before Streamlit integration.
-7. Integrate the accepted contract with progressive disclosure: original and hypothetical estimates, exact changed inputs, signed percentage-point difference, reset, and a visible explanation that the result describes model response only.
-8. Run the complete and headless suites, confirm both official artifact hashes and all four original reference displays are unchanged, then deploy and pass the mandatory healthy-path public smoke test before closing P10.
+1. **Completed:** audit the exact BRFSS meaning, encoding, valid domain, temporal meaning, reversibility, and communication risk of all 21 features.
+2. **Completed:** evaluate `BMI`, `PhysActivity`, `Fruits`, `Veggies`, and `HvyAlcoholConsump` as candidates only. D-023 accepted exactly `PhysActivity`, `Fruits`, and `Veggies`; `BMI` and `HvyAlcoholConsump` were rejected with the other 16 fields.
+3. **Completed:** resolve D-023 with an explicit user-editable whitelist and excluded-field rationale before engine or UI work. Age, sex, education, and income are not improvement levers. `Smoker` is excluded because it records whether the respondent has smoked at least 100 cigarettes over a lifetime, not a reversible present behavior. Diagnoses, historical events, access-to-care fields, subjective health summaries, and functional limitation are excluded.
+4. **Completed:** implement a pure, deterministic comparison engine that copies rather than mutates the submitted profile, validates only approved changes, preserves all 21 fields in exact order, and scores both profiles through the production probability helper.
+5. **Completed:** resolve D-024 before UI integration: one field at most, immutable structured output, signed scenario-minus-original delta, absolute tolerance `1e-12`, exact reset, and no optimization, ranked alternatives, presets, threshold categories, or scenario SHAP.
+6. **Completed:** resolve D-025 from focused UX, privacy, failure-mode, and performance evidence before Streamlit integration.
+7. **Completed locally:** integrate the accepted contract with progressive disclosure: original and hypothetical estimates, exact changed inputs, signed percentage-point difference, reset, and a visible explanation that the result describes model response only.
+8. **In progress:** run complete/headless/local visual verification and confirm both official artifact hashes and all four original reference displays are unchanged. Review, commit, push, deployment, and the mandatory healthy-path public smoke test remain external closure steps.
 
 Contract rules:
 
-- The original submitted profile is immutable. A zero-change scenario must exactly reproduce its probability and a zero delta.
+- The original submitted profile is immutable, and the returned comparison exposes only read-only mappings over independent ordered copies. A zero-change scenario must exactly reproduce its probability and a zero delta.
 - Scenario probability must equal a direct `predict_risk_probability` call on the exact modified profile. Define `delta_percentage_points = 100 * (scenario_probability - original_probability)` and verify it within absolute tolerance `1e-12`.
 - Only D-023-approved fields and values may enter the scenario. Unknown, excluded, missing, non-finite, incorrectly typed, or out-of-range changes are rejected.
 - Positive, negative, and zero deltas receive symmetric, neutral wording. The UI may say that an input "changed the model estimate" but never that it improved health, caused disease, reduced real risk, or should be changed.
 - D-019 remains binding: no threshold, high/low-risk label, decision recommendation, or screening interpretation is introduced.
 - D-020 through D-022 remain binding: P9 may explain the submitted estimate, but P10 will not calculate or present scenario-specific SHAP contributions or reinterpret existing contributions as intervention effects.
-- Streamlit performs no fitting, calibration, optimization, raw-data access, artifact generation, global explanation, scenario persistence, or external input logging. Widget state is transient.
+- Streamlit performs no fitting, calibration, optimization, raw-data access, artifact generation, global explanation, scenario persistence, or external input logging. Widget state is transient; the latest validated result is stored with the model-artifact SHA-256 and is cleared if a new original score fails or the current hash differs.
 - Neither `models/diabetes_risk_model.joblib` nor `models/shap_background_v1.json` is regenerated for P10. P11 batch prediction, P12 fairness, and broader explanation/UX polish remain separate phases.
 
-The technical evidence belongs in `docs/p10-scenarios/report.md` and must record the semantic audit, approved/excluded features, decisions, exact comparison contract, tests, limitations, artifact hashes, and public verification. Streamlit should provide only the concise everyday-language explanation needed to distinguish the original estimate from the hypothetical model experiment.
+The technical evidence is recorded in `docs/p10-scenarios/report.md`: semantic audit, approved/excluded features, decisions, exact comparison contract, tests, limitations, artifact hashes, and the still-pending public verification. Streamlit provides only the concise everyday-language explanation needed to distinguish the original estimate from the hypothetical model experiment.
 
 ## Fairness Analysis Plan
 

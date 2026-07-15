@@ -1,4 +1,4 @@
-"""Streamlit app: single-case risk estimation with P9 explanation.
+"""Streamlit app: single-case risk estimation with P9/P10 interpretation.
 
 The app is a thin UI over the P6 serving contract in `src.artifacts`: it
 loads the local D-016 model artifact once per server process (cached; the
@@ -30,13 +30,19 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import streamlit as st
 
-from src import artifacts, explainability
-from src.data import VALUE_RANGES
+from src import artifacts, explainability, scenarios
+from src.data import FEATURE_COLUMNS, VALUE_RANGES
 from src.feature_labels import (
     AGE_GROUP_LABELS,
     FEATURE_LABELS,
     ORDINAL_VALUE_LABELS,
+    feature_label,
+    format_feature_value,
 )
+
+ORIGINAL_RESULT_STATE_KEY = "_p10_original_result"
+SCENARIO_WIDGET_GENERATION_STATE_KEY = "_p10_scenario_generation"
+SCENARIO_WIDGET_STATE_PREFIX = "_p10_scenario_widget_"
 
 def medical_disclaimer(bundle: dict) -> str:
     """Medical warning whose calibration wording matches the served contract."""
@@ -250,6 +256,169 @@ def escape_markdown_dollar_signs(value: object) -> str:
     return str(value).replace("$", r"\$")
 
 
+def clear_scenario_widget_state() -> None:
+    """Reset transient scenario widgets without touching the original result."""
+    keys = tuple(st.session_state)
+    for key in keys:
+        if key.startswith(SCENARIO_WIDGET_STATE_PREFIX):
+            del st.session_state[key]
+    generation = int(
+        st.session_state.get(SCENARIO_WIDGET_GENERATION_STATE_KEY, 0)
+    )
+    st.session_state[SCENARIO_WIDGET_GENERATION_STATE_KEY] = generation + 1
+
+
+def clear_original_result() -> None:
+    """Invalidate the saved estimate and every scenario derived from it."""
+    st.session_state.pop(ORIGINAL_RESULT_STATE_KEY, None)
+    clear_scenario_widget_state()
+
+
+def save_original_result(
+    values: dict,
+    exact_age: int,
+    probability: float,
+    artifact_hash: str,
+) -> None:
+    """Keep one hash-bound result in active-session memory for P10 reruns."""
+    ordered_profile = scenarios.reset_scenario_profile(values)
+    st.session_state[ORIGINAL_RESULT_STATE_KEY] = {
+        "profile": ordered_profile,
+        "exact_age": exact_age,
+        "probability": probability,
+        "artifact_hash": artifact_hash,
+    }
+    clear_scenario_widget_state()
+
+
+def format_scenario_delta(delta_percentage_points: float) -> str:
+    """Format signed model-estimate movement without directional judgment."""
+    if delta_percentage_points == 0.0:
+        return "0.00 pp"
+    return f"{delta_percentage_points:+.2f} pp"
+
+
+def scenario_delta_statement(delta_percentage_points: float) -> str:
+    """Describe positive, negative, and zero deltas with one neutral template."""
+    delta = format_scenario_delta(delta_percentage_points).replace(
+        " pp", " percentage points"
+    )
+    return (
+        f"The model estimate changed by {delta} under this hypothetical "
+        "input scenario."
+    )
+
+
+def render_scenario_explorer(
+    bundle: dict,
+    original_profile: dict,
+    original_probability: float,
+) -> None:
+    """Render one controlled P10 sensitivity comparison for the saved case."""
+    st.subheader("Model scenario explorer")
+    st.write(
+        "Change at most one approved input to inspect the model's sensitivity. "
+        "This comparison describes model behavior only."
+    )
+
+    widget_generation = int(
+        st.session_state.get(SCENARIO_WIDGET_GENERATION_STATE_KEY, 0)
+    )
+    feature_options = (None, *scenarios.EDITABLE_SCENARIO_FEATURES)
+    selected_feature = st.selectbox(
+        "Input to vary",
+        options=feature_options,
+        key=(
+            f"{SCENARIO_WIDGET_STATE_PREFIX}feature_"
+            f"{widget_generation}"
+        ),
+        format_func=lambda feature: (
+            "No input change" if feature is None else feature_label(feature)
+        ),
+    )
+
+    changes: dict[str, int] = {}
+    if selected_feature is not None:
+        original_value = int(original_profile[selected_feature])
+        selected_value = int(
+            st.selectbox(
+                "Hypothetical value",
+                options=(0, 1),
+                index=original_value,
+                key=(
+                    f"{SCENARIO_WIDGET_STATE_PREFIX}value_"
+                    f"{widget_generation}_{selected_feature}"
+                ),
+                format_func=lambda value, feature=selected_feature: (
+                    format_feature_value(feature, value)
+                ),
+            )
+        )
+        changes[selected_feature] = selected_value
+
+    st.button(
+        "Reset to original",
+        on_click=clear_scenario_widget_state,
+        help="Remove the hypothetical change and restore all 21 original inputs.",
+    )
+
+    try:
+        comparison = scenarios.compare_scenario(
+            bundle,
+            original_profile,
+            changes,
+        )
+        if (
+            abs(comparison.original_probability - original_probability)
+            > scenarios.DELTA_ABSOLUTE_TOLERANCE
+        ):
+            raise ValueError(
+                "The saved original estimate does not match the current "
+                "artifact response."
+            )
+    except (ValueError, RuntimeError) as error:
+        st.warning(
+            "The hypothetical scenario is temporarily unavailable. "
+            "The original estimate and its explanation are unchanged."
+        )
+        with st.expander("Scenario error details"):
+            st.code(str(error))
+        return
+
+    original_column, scenario_column, delta_column = st.columns(3)
+    original_column.metric(
+        "Original estimate",
+        f"{comparison.original_probability:.1%}",
+    )
+    scenario_column.metric(
+        "Hypothetical scenario",
+        f"{comparison.hypothetical_probability:.1%}",
+    )
+    delta_column.metric(
+        "Difference",
+        format_scenario_delta(comparison.delta_percentage_points),
+    )
+
+    if comparison.effective_changes:
+        for changed_feature, change in comparison.effective_changes.items():
+            st.caption(
+                f"Effective change — {feature_label(changed_feature)}: "
+                f"original {format_feature_value(changed_feature, change.original_value)}; "
+                "hypothetical "
+                f"{format_feature_value(changed_feature, change.hypothetical_value)}."
+            )
+    else:
+        st.caption("Effective changes: none; all 21 original inputs are preserved.")
+
+    st.write(scenario_delta_statement(comparison.delta_percentage_points))
+    st.info(
+        "Under this hypothetical input scenario, the comparison shows only "
+        "how this fitted model responds. It is not causal and does not predict "
+        "what will happen to a person's health if an input changes. It is not "
+        "medical advice, a diagnosis, or a recommendation."
+    )
+
+
 def render_local_explanation(
     bundle: dict,
     values: dict,
@@ -402,6 +571,7 @@ def main() -> None:
         )
         bundle = load_model_bundle(artifact_hash)
     except (FileNotFoundError, ValueError) as error:
+        clear_original_result()
         message = str(error)
         if "python -m src.artifacts" not in message:
             message += " Generate it with 'python -m src.artifacts'."
@@ -413,29 +583,73 @@ def main() -> None:
         st.stop()
 
     submission = render_input_form()
+    prediction_failed = False
 
-    if submission is None:
-        st.info("Fill in the form and press **Estimate risk** to get an educational risk estimate.")
-    else:
+    if submission is not None:
         values, exact_age = submission
         try:
             probability = artifacts.predict_risk_probability(bundle, values)
         except ValueError as error:
+            clear_original_result()
+            prediction_failed = True
             st.error(f"Could not score this case: {error}")
         else:
-            st.subheader("Estimated risk")
-            st.metric(
-                "Model-estimated probability of diabetes or prediabetes",
-                f"{probability:.1%}",
+            save_original_result(
+                values,
+                exact_age,
+                probability,
+                artifact_hash,
             )
-            st.caption(
-                f"Age {exact_age} was evaluated in the "
-                f"{AGE_GROUP_LABELS[values['Age']]} model age group."
+
+    original_result = st.session_state.get(ORIGINAL_RESULT_STATE_KEY)
+    artifact_changed = False
+    if (
+        original_result is not None
+        and original_result.get("artifact_hash") != artifact_hash
+    ):
+        clear_original_result()
+        original_result = None
+        artifact_changed = True
+
+    if original_result is None:
+        if artifact_changed:
+            st.info(
+                "The local model artifact changed during this session. "
+                "Submit the form again to create an estimate bound to the "
+                "current artifact."
             )
-            st.caption(probability_contract_caption(bundle))
-            render_local_explanation(
-                bundle, values, probability, artifact_hash
+        elif not prediction_failed:
+            st.info(
+                "Fill in the form and press **Estimate risk** to get an "
+                "educational risk estimate."
             )
+    else:
+        original_profile = {
+            feature: original_result["profile"][feature]
+            for feature in FEATURE_COLUMNS
+        }
+        original_probability = float(original_result["probability"])
+        st.subheader("Estimated risk")
+        st.metric(
+            "Model-estimated probability of diabetes or prediabetes",
+            f"{original_probability:.1%}",
+        )
+        st.caption(
+            f"Age {original_result['exact_age']} was evaluated in the "
+            f"{AGE_GROUP_LABELS[original_profile['Age']]} model age group."
+        )
+        st.caption(probability_contract_caption(bundle))
+        render_local_explanation(
+            bundle,
+            original_profile,
+            original_probability,
+            artifact_hash,
+        )
+        render_scenario_explorer(
+            bundle,
+            original_profile,
+            original_probability,
+        )
     st.warning(medical_disclaimer(bundle))
 
 
