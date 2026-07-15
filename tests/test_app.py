@@ -235,6 +235,18 @@ def test_local_chart_has_two_directions_full_labels_and_zero_rule():
     assert zero_rule["encoding"]["x"]["datum"] == 0
 
 
+def test_currency_labels_escape_streamlit_inline_math_delimiters():
+    module = import_app("streamlit_app_currency_markdown")
+
+    assert module.escape_markdown_dollar_signs("$35,000 to $49,999") == (
+        r"\$35,000 to \$49,999"
+    )
+    assert module.escape_markdown_dollar_signs("Less than $10,000") == (
+        r"Less than \$10,000"
+    )
+    assert module.escape_markdown_dollar_signs("Poor") == "Poor"
+
+
 def test_app_shows_disclaimer_and_uses_the_artifact_helpers():
     source = APP_PATH.read_text(encoding="utf-8")
     assert "load_artifact" in source

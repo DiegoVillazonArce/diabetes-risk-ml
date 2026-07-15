@@ -245,6 +245,11 @@ def build_local_contribution_chart(display):
     return chart, spec
 
 
+def escape_markdown_dollar_signs(value: object) -> str:
+    """Render currency labels literally instead of as inline math."""
+    return str(value).replace("$", r"\$")
+
+
 def render_local_explanation(
     bundle: dict,
     values: dict,
@@ -296,8 +301,9 @@ def render_local_explanation(
 
     st.markdown("**Largest contributions for this estimate**")
     for row in display.itertuples(index=False):
+        display_value = escape_markdown_dollar_signs(row.display_value)
         st.markdown(
-            f"- **{row.feature_label}: {row.display_value}** {row.direction} "
+            f"- **{row.feature_label}: {display_value}** {row.direction} "
             f"by {abs(row.contribution) * 100:.2f} model-estimate percentage points."
         )
 
