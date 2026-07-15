@@ -459,7 +459,7 @@ The protocol details live in `docs/ml-analysis-plan.md` ("Calibration and Thresh
 
 **Date:** 2026-07-13
 
-**Status:** Ready -- rolling-wave refinement is complete; P9 implementation has not started
+**Status:** In Progress -- local implementation and validation are complete; commit, push, redeployment, and the mandatory public smoke test remain external closure work
 
 **Goal:** Explain globally and locally the behavior of the final P8 probability contract without modifying its predictions, while providing a simple non-technical Streamlit explanation and reproducible academic/technical evidence with no causal, diagnostic, clinical, or prescriptive claims.
 
@@ -469,24 +469,24 @@ The protocol details live in `docs/ml-analysis-plan.md` ("Calibration and Thresh
 - US-0608 -- reproducible local explanations for the four public synthetic reference profiles.
 - US-0609 -- delivery, integration, privacy, regression protection, and two-level communication.
 
-All three stories are Ready. Their acceptance criteria and unchecked implementation tasks are recorded under "Candidate Tasks for P9" in `docs/backlog.md`.
+US-0602 and US-0608 are Done from reproducible local evidence. US-0609 is In Progress because its local code, privacy checks, technical evidence, regression coverage, and headless checks are complete, but commit, push, redeployment, and public verification have not occurred.
 
-### Planned Increments
+### Planned Increments and Local Outcome
 
-P9 is planned as four ordered, independently verifiable increments:
+P9 retained the four ordered increments from refinement. Their local outcome on 2026-07-14 is:
 
-1. **Increment 1 -- compatibility and technical contract (approximately 1 day).** Spike SHAP against Python 3.12, NumPy 2.2.6, scikit-learn 1.7.1, and the frozen D-016 `HistGradientBoostingClassifier`; evaluate TreeExplainer first; validate output shape, positive class, exact feature order, finiteness, additivity, runtime, memory, and whether any deployable explainer retains background rows; resolve D-020 and D-021 from evidence; pin SHAP only after the selected route passes. Direct served-probability explanations must pass the fixed `1e-4` absolute tolerance; a different mathematical output must have its own tolerance fixed during this spike before full analysis. No tolerance, output, or explainer may change silently after results.
-2. **Increment 2 -- offline global analysis (approximately 1-2 days).** Apply the accepted D-021 policy; initially propose a deterministic 256-row train-only background and an up-to-5,000-row deterministic, proportionally stratified calibration sample that preserves the calibration prevalence with seed 42; produce aggregate mean absolute SHAP importance, a global bar plot, a beeswarm plot, and the reproducible technical report. Sample sizes may change only during Increment 1 for documented performance or memory constraints, never after inspecting explanations to favor a narrative.
-3. **Increment 3 -- local explanations (approximately 1-2 days).** Explain all four public synthetic reference profiles; produce base value, final estimate, contribution tables, and waterfall plots or the evidenced equivalent; translate encoded features into accurate user labels; validate additivity, finiteness, positive class, exact feature order, unchanged probabilities, and reproducibility; prepare simple and technical wording without causal or medical claims.
-4. **Increment 4 -- integration, regression, and deployment (approximately 1-2 days).** Resolve D-022 before changing Streamlit; implement only the accepted dynamic, precomputed, or hybrid strategy; accept a dynamic path only when deployed assets expose no real background rows, otherwise validate a faithful aggregate/synthetic background or reject that option; run the full and headless test batteries; verify performance, timeout behavior where applicable, privacy, disclaimer visibility, wording, and exact conservation of the four P8 reference probabilities; deploy through the existing process and pass the mandatory public smoke test.
+1. **Increment 1 -- compatibility and technical contract: locally complete.** SHAP 0.52.0 was tested against the exact pinned stack and frozen `HistGradientBoostingClassifier`. Direct positive-probability `TreeExplainer` passed shape, class, order, finiteness, runtime, memory, and the unchanged `1e-4` tolerance. An explicit masker was necessary because SHAP otherwise reduced 256 background rows to 100. D-020 and D-021 were Accepted before the full analysis, and only then was `shap==0.52.0` added.
+2. **Increment 2 -- offline global analysis: locally complete.** The accepted background contains 256 deterministic train-derived aggregate centroids, each combining 693 or 694 train rows and matching no train row exactly. The fixed calibration sample contains 5,000 rows (697 positive, 4,303 negative), preserving prevalence within deterministic allocation rounding. Aggregate CSV/bar, rendered beeswarm, structured metadata, spike comparison, and the technical report were generated; no row-level global data or SHAP matrix was published.
+3. **Increment 3 -- local explanations: locally complete.** All four public synthetic profiles have reproducible contribution tables and waterfall plots. Positive class, exact feature order, finiteness, additivity, unchanged 0.3%/60.0%/70.0%/79.9% displays, and shared feature/value labels are covered by tests.
+4. **Increment 4 -- integration, regression, and deployment: local portion complete; external portion pending.** D-022 selected hybrid delivery before Streamlit integration: a cached dynamic local explanation uses the accepted safe background, while global and reference evidence remain precomputed offline. The app reads no CSV, trains no model, derives no background, and runs no global analysis. It creates a `TreeExplainer` from the aggregate asset under an artifact-hash cache key; widget values remain transient in the active session and project code writes or logs none outside that session. The disclaimer/probability-only contract and explanation-error fallback remain intact. Local full/headless verification passed. Commit, push, redeployment, and public healthy-path smoke verification remain undone.
 
-### Pending Decisions
+### Accepted Decisions
 
-- **D-020 -- SHAP explanation output contract:** positive-class probability with TreeExplainer, raw margin with explicit transformation/communication, or a model-agnostic fallback. Resolve from compatibility, fidelity, additivity, time, and memory evidence; keep `1e-4` fixed for direct probability and predeclare any different output-space tolerance before full analysis.
-- **D-021 -- SHAP background and evaluation sample policy:** origin, size, seed, proportional sampling/stratification, privacy, and fixed global-analysis sample. Resolve before full analysis; the calibration sample must preserve its original prevalence, and test cannot participate in configuration or narrative choices.
-- **D-022 -- explanation delivery and communication levels:** dynamic, precomputed, or hybrid local delivery. Resolve before Streamlit changes, considering performance, memory, privacy, fidelity, maintenance, deployment, non-technical UX, and the simple-app/technical-GitHub separation; reject any dynamic design that exposes real background rows unless a privacy-safe aggregate/synthetic replacement passes the fidelity contract.
+- **D-020 -- Accepted:** directly explain class-1 probability with SHAP 0.52.0 `TreeExplainer`, interventional perturbation, probability output, and the explicit 256-row masker. The 5,000-row maximum additivity error was `1.3185956326822179e-08`, far below `1e-4`. Raw margin was faithful but adds unnecessary communication complexity; permutation probability was faithful but exceeded the projected global-time limit.
+- **D-021 -- Accepted:** use one deterministic 256-centroid train-derived aggregate background for offline and runtime explanation, plus a seed-42 proportionally stratified 5,000-row calibration global sample. The centroid builder uses no RNG; seed 42 governs the global sampler. The asset contains no target, identifiers, split indices, exact real row, or calibration/test data.
+- **D-022 -- Accepted:** hybrid delivery combines one dynamic local explanation of the actual submitted input with precomputed aggregate global and synthetic-profile technical evidence. The explainer is safely cached; runtime loads neither raw data nor global outputs.
 
-All three decisions remain Pending during this refinement. None may be marked Accepted without implementation evidence from its named gate.
+The full evidence and rejected alternatives are recorded in `docs/decisions.md` and `docs/p9-explainability/`. These decisions were accepted only after their named implementation gates produced evidence.
 
 ### Guardrails
 
@@ -500,9 +500,9 @@ All three decisions remain Pending during this refinement. None may be marked Ac
 - Keep model fitting, data download, and global SHAP computation out of the Streamlit import/serving path.
 - CI remains an optional quality-track candidate or independent increment, not part of the SHAP critical path or P9 Definition of Done.
 
-### Expected Deliverables
+### Local Deliverables
 
-Future implementation is expected to produce, but this planning iteration does not create:
+The local implementation produced:
 
 - `src/explainability.py`.
 - `tests/test_explainability.py`.
@@ -514,7 +514,7 @@ Future implementation is expected to produce, but this planning iteration does n
 
 The technical report must document the methodology, output and positive class, base value and contributions, explainer configuration, background and analysis sample, seed, additivity, reproducibility, package versions, limitations, privacy policy, performance/memory evidence, and plot-generation procedure. Streamlit must present the same contract progressively in everyday language without reproducing unnecessary academic detail.
 
-### Expected Tests
+### Local Verification Contract
 
 - A finite SHAP contribution matrix with exact shape `n x 21`, correct positive class, and columns in exact `FEATURE_COLUMNS` order.
 - Additivity under the fixed `1e-4` absolute tolerance for direct served-probability explanations; any different D-020 output space uses a separately justified tolerance fixed during the spike before full analysis, plus an explicit tested relationship to `predict_risk_probability`.
@@ -541,10 +541,11 @@ P9 may move from Ready to Done only after implementation and verification demons
 - The updated Streamlit application passes public verification.
 - D-020, D-021, and D-022 are resolved with recorded evidence.
 
-This planning refinement satisfies none of those implementation-dependent completion claims by itself; P9 remains Ready.
+The local implementation satisfies the reproducibility, fidelity, privacy, wording, regression, and headless requirements. It does not satisfy the public-availability requirement because the changes are intentionally unstaged and uncommitted, no push or redeployment was performed, and no public smoke test was claimed. P9 therefore remains Ready.
 
 ### Follow-Up
 
-- Begin P9 Increment 1 with the compatibility and output-contract spike; do not begin full SHAP analysis before D-020 and D-021 are resolved.
-- After P9 is implemented, verified, and closed, refine P10 through a separate rolling-wave planning step. P10 remains Future and is not refined here.
+- Review the unstaged local P9 changes and manually exercise representative valid and error paths on localhost.
+- After review, commit and push the implementation, redeploy/reboot Streamlit, and complete the mandatory healthy-path public startup, form, explanation, disclaimer, privacy wording, and four-profile smoke checks. Missing/corrupt background and explainer error paths remain deployment-equivalent local/headless checks; the healthy public deployment must not be broken deliberately. Only then may US-0609 and P9 be closed.
+- After P9 is publicly verified and closed, refine P10 through a separate rolling-wave planning step. P10 remains Future and is not refined here.
 - Retain CI and `skops` as independent quality/packaging candidates without adding either to P9's critical path.

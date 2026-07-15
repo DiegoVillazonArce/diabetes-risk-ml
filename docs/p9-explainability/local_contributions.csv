@@ -1,0 +1,85 @@
+profile,rank,feature,feature_label,feature_value,display_value,contribution,absolute_contribution,direction,base_value,model_probability,additivity_error
+low_risk_young_healthy,1,GenHlth,General health (self-rated),1,Excellent,-0.0497428397958,0.0497428397958,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,2,Age,Age group (BRFSS),1,18-24,-0.0406647889134,0.0406647889134,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,3,BMI,Body mass index (BMI),22,22,-0.0274998826058,0.0274998826058,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,4,HighBP,High blood pressure,0,No,-0.0261808703869,0.0261808703869,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,5,HighChol,High cholesterol,0,No,-0.019552967136,0.019552967136,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,6,MentHlth,Days of poor mental health in the past 30 days,0,0,0.00567952070634,0.00567952070634,increased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,7,Income,Annual household income,7,"$50,000 to $74,999",-0.00425483942835,0.00425483942835,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,8,Education,Education level,6,College graduate (4 years or more),-0.00326143022559,0.00326143022559,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,9,Sex,Sex,0,Female,-0.00145824112869,0.00145824112869,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,10,DiffWalk,Serious difficulty walking or climbing stairs,0,No,-0.00112498551508,0.00112498551508,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,11,HeartDiseaseorAttack,Coronary heart disease or heart attack,0,No,-0.000453368698029,0.000453368698029,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,12,PhysActivity,Physical activity in the past 30 days,1,Yes,-0.000166154423513,0.000166154423513,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,13,PhysHlth,Days of poor physical health in the past 30 days,0,0,-0.000125864463766,0.000125864463766,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,14,Smoker,Smoked at least 100 cigarettes in lifetime,0,No,9.83485742875e-05,9.83485742875e-05,increased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,15,Fruits,Eats fruit at least once per day,1,Yes,-1.58893045235e-05,1.58893045235e-05,decreased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,16,CholCheck,Cholesterol check in the past 5 years,1,Yes,4.55171277923e-06,4.55171277923e-06,increased the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,17,AnyHealthcare,Has any kind of health care coverage,1,Yes,0,0,did not change the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,18,HvyAlcoholConsump,Heavy alcohol consumption,0,No,0,0,did not change the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,19,NoDocbcCost,Skipped a doctor visit due to cost in the past year,0,No,0,0,did not change the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,20,Stroke,Ever had a stroke,0,No,0,0,did not change the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+low_risk_young_healthy,21,Veggies,Eats vegetables at least once per day,1,Yes,0,0,did not change the model estimate,0.17172108293,0.00300138471902,2.82065829114e-09
+high_risk_cardiac_smoker,1,BMI,Body mass index (BMI),42,42,0.132898469827,0.132898469827,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,2,HighBP,High blood pressure,1,Yes,0.057671196984,0.057671196984,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,3,HeartDiseaseorAttack,Coronary heart disease or heart attack,1,Yes,0.0376199305473,0.0376199305473,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,4,HighChol,High cholesterol,1,Yes,0.0339191583731,0.0339191583731,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,5,GenHlth,General health (self-rated),3,Good,0.0338199983015,0.0338199983015,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,6,DiffWalk,Serious difficulty walking or climbing stairs,1,Yes,0.0324226329752,0.0324226329752,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,7,Sex,Sex,1,Male,0.028737145611,0.028737145611,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,8,Age,Age group (BRFSS),13,80 or older,0.0285740661056,0.0285740661056,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,9,Income,Annual household income,1,"Less than $10,000",0.0259168146321,0.0259168146321,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,10,MentHlth,Days of poor mental health in the past 30 days,0,0,0.01098926652,0.01098926652,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,11,PhysActivity,Physical activity in the past 30 days,0,No,0.00368003513771,0.00368003513771,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,12,Veggies,Eats vegetables at least once per day,0,No,0.00148838729845,0.00148838729845,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,13,Fruits,Eats fruit at least once per day,0,No,0.00128195640401,0.00128195640401,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,14,Smoker,Smoked at least 100 cigarettes in lifetime,1,Yes,-0.000602157611237,0.000602157611237,decreased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,15,PhysHlth,Days of poor physical health in the past 30 days,20,20,-0.000291829083159,0.000291829083159,decreased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,16,CholCheck,Cholesterol check in the past 5 years,1,Yes,0.000252444835516,0.000252444835516,increased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,17,Education,Education level,4,High school graduate or GED,-9.76453851034e-05,9.76453851034e-05,decreased the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,18,AnyHealthcare,Has any kind of health care coverage,1,Yes,0,0,did not change the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,19,HvyAlcoholConsump,Heavy alcohol consumption,0,No,0,0,did not change the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,20,NoDocbcCost,Skipped a doctor visit due to cost in the past year,0,No,0,0,did not change the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_cardiac_smoker,21,Stroke,Ever had a stroke,0,No,0,0,did not change the model estimate,0.17172108293,0.600000943118,1.12852496237e-08
+high_risk_poor_health,1,GenHlth,General health (self-rated),5,Poor,0.167212573295,0.167212573295,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,2,BMI,Body mass index (BMI),38,38,0.124958191037,0.124958191037,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,3,HighBP,High blood pressure,1,Yes,0.0666210941822,0.0666210941822,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,4,HighChol,High cholesterol,1,Yes,0.0423910648354,0.0423910648354,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,5,Age,Age group (BRFSS),11,70-74,0.039766063909,0.039766063909,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,6,Income,Annual household income,1,"Less than $10,000",0.0291035630474,0.0291035630474,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,7,Sex,Sex,1,Male,0.0169127641194,0.0169127641194,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,8,DiffWalk,Serious difficulty walking or climbing stairs,1,Yes,0.015380321498,0.015380321498,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,9,MentHlth,Days of poor mental health in the past 30 days,0,0,0.00884682438251,0.00884682438251,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,10,PhysActivity,Physical activity in the past 30 days,0,No,0.00552040950865,0.00552040950865,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,11,Education,Education level,3,Some high school (grades 9-11),0.00481485958136,0.00481485958136,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,12,Fruits,Eats fruit at least once per day,0,No,0.00420044549287,0.00420044549287,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,13,Smoker,Smoked at least 100 cigarettes in lifetime,0,No,0.00283597275087,0.00283597275087,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,14,PhysHlth,Days of poor physical health in the past 30 days,10,10,-0.00189848587792,0.00189848587792,decreased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,15,Veggies,Eats vegetables at least once per day,0,No,0.00180538671678,0.00180538671678,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,16,HeartDiseaseorAttack,Coronary heart disease or heart attack,0,No,-0.000522120999285,0.000522120999285,decreased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,17,CholCheck,Cholesterol check in the past 5 years,1,Yes,0.000317947561201,0.000317947561201,increased the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,18,AnyHealthcare,Has any kind of health care coverage,1,Yes,0,0,did not change the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,19,HvyAlcoholConsump,Heavy alcohol consumption,0,No,0,0,did not change the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,20,NoDocbcCost,Skipped a doctor visit due to cost in the past year,0,No,0,0,did not change the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_poor_health,21,Stroke,Ever had a stroke,0,No,0,0,did not change the model estimate,0.17172108293,0.699987950051,7.91857091009e-09
+high_risk_severe_obesity_cardiac,1,GenHlth,General health (self-rated),5,Poor,0.178853294807,0.178853294807,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,2,BMI,Body mass index (BMI),45,45,0.165764910184,0.165764910184,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,3,HighBP,High blood pressure,1,Yes,0.0697653581175,0.0697653581175,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,4,HeartDiseaseorAttack,Coronary heart disease or heart attack,1,Yes,0.0447938736668,0.0447938736668,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,5,Age,Age group (BRFSS),10,65-69,0.0433595294023,0.0433595294023,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,6,HighChol,High cholesterol,1,Yes,0.0420005094686,0.0420005094686,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,7,Sex,Sex,1,Male,0.0337701936762,0.0337701936762,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,8,DiffWalk,Serious difficulty walking or climbing stairs,1,Yes,0.0307551931479,0.0307551931479,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,9,PhysActivity,Physical activity in the past 30 days,0,No,0.00703244104927,0.00703244104927,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,10,Fruits,Eats fruit at least once per day,0,No,0.00585501561935,0.00585501561935,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,11,MentHlth,Days of poor mental health in the past 30 days,0,0,0.00568836625997,0.00568836625997,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,12,Income,Annual household income,6,"$35,000 to $49,999",-0.00479394614373,0.00479394614373,decreased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,13,Veggies,Eats vegetables at least once per day,0,No,0.00208809493287,0.00208809493287,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,14,Smoker,Smoked at least 100 cigarettes in lifetime,0,No,0.00122018936795,0.00122018936795,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,15,Education,Education level,4,High school graduate or GED,0.000651671140245,0.000651671140245,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,16,CholCheck,Cholesterol check in the past 5 years,1,Yes,0.000305288787747,0.000305288787747,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,17,PhysHlth,Days of poor physical health in the past 30 days,10,10,0.000169658048415,0.000169658048415,increased the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,18,AnyHealthcare,Has any kind of health care coverage,1,Yes,0,0,did not change the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,19,HvyAlcoholConsump,Heavy alcohol consumption,0,No,0,0,did not change the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,20,NoDocbcCost,Skipped a doctor visit due to cost in the past year,0,No,0,0,did not change the model estimate,0.17172108293,0.799000716697,7.76477826481e-09
+high_risk_severe_obesity_cardiac,21,Stroke,Ever had a stroke,0,No,0,0,did not change the model estimate,0.17172108293,0.799000716697,7.76477826481e-09

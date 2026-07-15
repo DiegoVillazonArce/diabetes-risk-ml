@@ -252,16 +252,16 @@ P6 provides the planning evidence for this refinement: the validated single-bund
 
 ## Epic E6: Post-MVP Enhancements
 
-The P8 stories -- US-0601 (calibration evaluation and selection), US-0606 (threshold analysis and trade-offs), and US-0607 (schema-version-2 artifact and app integration) -- were refined to Ready on 2026-07-11, implemented on 2026-07-12/13, and closed on 2026-07-13 after implementation commit `5798a0e` was pushed and the Streamlit deployment passed its public smoke verification. D-018 and D-019 are Accepted, and all three P8 stories are Done. The leakage-safe protocol lives in `docs/ml-analysis-plan.md`, evidence in `docs/p8-calibration/report.md`, and execution history in `docs/iteration-log.md`. P9 is now refined to Ready through US-0602, US-0608, and US-0609; implementation has not started. Scenario exploration (P10), batch prediction (P11), and fairness audit (P12) remain Deferred for their later rolling-wave refinements.
+The P8 stories -- US-0601 (calibration evaluation and selection), US-0606 (threshold analysis and trade-offs), and US-0607 (schema-version-2 artifact and app integration) -- were refined to Ready on 2026-07-11, implemented on 2026-07-12/13, and closed on 2026-07-13 after implementation commit `5798a0e` was pushed and the Streamlit deployment passed its public smoke verification. D-018 and D-019 are Accepted, and all three P8 stories are Done. The leakage-safe protocol lives in `docs/ml-analysis-plan.md`, evidence in `docs/p8-calibration/report.md`, and execution history in `docs/iteration-log.md`. P9 remains Ready, but its local implementation and evidence were completed on 2026-07-14: D-020, D-021, and D-022 are Accepted; US-0602 and US-0608 are Done; and US-0609 is In Progress until commit, push, redeployment, and the mandatory public smoke test. Scenario exploration (P10), batch prediction (P11), and fairness audit (P12) remain Deferred for their later rolling-wave refinements.
 
 | ID | User Story | Priority | Status | Acceptance Criteria |
 |---|---|---:|---|---|
 | US-0601 | As a user, I want calibrated probabilities so that risk percentages are more honest. | P1 | Done | Before any calibrator is fitted, an uncalibrated baseline for the frozen train-only D-016 model is recorded on the calibration split: reliability diagram, Brier score, and log loss, with ROC-AUC and PR-AUC as ranking context. Sigmoid and isotonic calibration are then compared against that baseline exclusively on stratified five-fold out-of-fold predictions within the calibration split, fitting each calibrator on the frozen model's scores; the base model is never refit and calibrators never consume train or test rows. The comparison reports reliability diagrams (visual diagnostics), Brier score, and log loss, plus ROC-AUC and PR-AUC as ranking-preservation checks (ECE may appear as a descriptive secondary metric only). The selection follows the operationalized D-018 criteria pre-declared in `docs/ml-analysis-plan.md` -- a paired-bootstrap Brier adoption rule against the uncalibrated baseline, log loss under the same rule as tie-break, a fixed ROC-AUC/PR-AUC regression bound, and `calibration_method = none` when no method qualifies -- declared before out-of-fold results are observed. The method choice uses no test data and D-018 is resolved before any threshold freezing, final refit, or test use; a selected calibrator is refit on the full calibration split; and the frozen final contract receives one official P8 test evaluation, which later runs may only repeat as a deterministic regression check without modifying any decision. |
 | US-0606 | As a reviewer, I want a documented threshold analysis with explicit trade-offs so that decision cut-offs are understandable without turning the risk estimate into a diagnosis. | P1 | Done | Precision-recall curves and threshold tables (positive-class recall, precision, F1, false-positive and false-negative counts, and confusion matrices per candidate threshold) are computed exclusively from the out-of-fold probabilities of the D-018-selected probability contract on the calibration split; test rows are never used to explore or select thresholds. Candidate threshold scenarios are frozen, and D-019 resolved, after the D-018 selection and before the official P8 test evaluation. The analysis keeps probability estimation explicitly separate from any decision layer, makes no clinical claims, and never presents a threshold as a validated screening or diagnostic rule. The app keeps displaying a probability without high/low-risk labels unless D-019 later records an explicit, justified product decision. |
 | US-0607 | As a user, I want the deployed app to serve the P8-selected probability contract so that the public estimates reflect the P8 calibration work. | P1 | Done | The artifact moves to schema version 2 and serves the D-018-selected contract: a single bundle holding the frozen D-016 base model, the selected `calibration_method` (`sigmoid`, `isotonic`, or `none`), and -- only when the method is sigmoid or isotonic -- the fitted final calibrator, with metadata recording the method, the out-of-fold protocol, calibration metrics (calibration-split out-of-fold and the official P8 test evaluation), and package versions. `validate_artifact_bundle()` enforces the version-2 contract with the same strictness as version 1, including that a calibrator is present if and only if the method requires one, with direct checks of the calibrator object. App wording matches the served contract: it stops describing the probability as uncalibrated only when a calibrator ships, and keeps the uncalibrated notice if `none` wins. The four deployment reference profiles are regenerated with newly recorded expected probabilities and displays when the served probabilities change, and re-verified unchanged against the version-2 artifact when they do not. Local, headless, and public smoke tests pass; the official artifact ships through the D-013 controlled Git exception; and Streamlit still never trains or calibrates at runtime. |
-| US-0602 | As a reviewer, I want a defined explanation contract and global SHAP analysis so that the final P8 probability behavior can be audited without changing it. | P1 | Ready | Validate SHAP compatibility with the pinned Python 3.12, NumPy 2.2.6, scikit-learn 1.7.1 stack and the frozen D-016 `HistGradientBoostingClassifier`; determine and document the explained output, ideally the positive-class probability served by `predict_risk_probability`; produce global importance from mean absolute SHAP values with at least a bar plot and beeswarm; record the model, output, background, analysis sample, seed, package versions, limitations, mathematical-fidelity checks, and reproduction procedure; and leave the P8 model, artifact, and served probabilities unchanged. |
-| US-0608 | As a user and reviewer, I want reproducible local explanations for the public reference profiles so that each estimate can be understood and audited. | P1 | Ready | Explain all four public reference profiles with the correct positive class and exact `FEATURE_COLUMNS` order; show the base value, final served estimate, and per-feature contributions; produce waterfall plots or an evidenced equivalent local representation; translate feature names and encoded values into understandable labels; describe contributions only with wording such as "increased/decreased the model's estimate"; prohibit causal, diagnostic, or medical-recommendation claims; and verify additivity, finiteness, feature order, and fixed-seed reproducibility. |
-| US-0609 | As a non-technical user and technical reviewer, I want explanation communication at two levels so that the app stays understandable while GitHub evidence remains auditable. | P1 | Ready | Provide a simple, progressive, visual Streamlit section similar to "How the model interprets this estimate" for a non-technical audience, while preserving the medical disclaimer; provide a reproducible technical report and evidence under `docs/p9-explainability/`; resolve D-022 before implementation chooses dynamic, precomputed, or hybrid local explanations; verify performance, privacy, regressions, and public deployment behavior; and never expose real dataset rows in the app or published artifacts. |
+| US-0602 | As a reviewer, I want a defined explanation contract and global SHAP analysis so that the final P8 probability behavior can be audited without changing it. | P1 | Done | Validate SHAP compatibility with the pinned Python 3.12, NumPy 2.2.6, scikit-learn 1.7.1 stack and the frozen D-016 `HistGradientBoostingClassifier`; determine and document the explained output, ideally the positive-class probability served by `predict_risk_probability`; produce global importance from mean absolute SHAP values with at least a bar plot and beeswarm; record the model, output, background, analysis sample, seed, package versions, limitations, mathematical-fidelity checks, and reproduction procedure; and leave the P8 model, artifact, and served probabilities unchanged. |
+| US-0608 | As a user and reviewer, I want reproducible local explanations for the public reference profiles so that each estimate can be understood and audited. | P1 | Done | Explain all four public reference profiles with the correct positive class and exact `FEATURE_COLUMNS` order; show the base value, final served estimate, and per-feature contributions; produce waterfall plots or an evidenced equivalent local representation; translate feature names and encoded values into understandable labels; describe contributions only with wording such as "increased/decreased the model's estimate"; prohibit causal, diagnostic, or medical-recommendation claims; and verify additivity, finiteness, feature order, and fixed-seed reproducibility. |
+| US-0609 | As a non-technical user and technical reviewer, I want explanation communication at two levels so that the app stays understandable while GitHub evidence remains auditable. | P1 | In Progress | Provide a simple, progressive, visual Streamlit section similar to "How the model interprets this estimate" for a non-technical audience, while preserving the medical disclaimer; provide a reproducible technical report and evidence under `docs/p9-explainability/`; resolve D-022 before implementation chooses dynamic, precomputed, or hybrid local explanations; verify performance, privacy, regressions, and public deployment behavior; and never expose real dataset rows in the app or published artifacts. |
 | US-0603 | As a user, I want batch CSV prediction so that multiple cases can be scored at once. | P2 | Deferred | CSV upload, validation report, and downloadable predictions are implemented. |
 | US-0604 | As a reviewer, I want a fairness audit so that subgroup performance is not ignored. | P2 | Deferred | Metrics are reported by sex, age group, and income group where applicable. |
 | US-0605 | As a user, I want to explore how selected modifiable inputs affect the model output so that I can understand model sensitivity without treating it as medical advice. | P2 | Deferred | Scenario explorer only changes approved modifiable features and clearly states that outputs are model responses, not causal health effects. |
@@ -317,63 +317,63 @@ P5-P7 provided the planning evidence for this refinement: the calibration split 
 
 ### Candidate Tasks for P9
 
-P9 explains the final probability contract selected in P8: the frozen D-016 `HistGradientBoostingClassifier`, artifact schema version 2, and `calibration_method = none`, serving the model's positive-class probability through `predict_risk_probability`. The phase must not change that contract. The exact SHAP output contract remains deliberately unresolved until the compatibility spike produces evidence; TreeExplainer must not be assumed to explain the served probability additively without verification.
+P9 explains the final probability contract selected in P8: the frozen D-016 `HistGradientBoostingClassifier`, artifact schema version 2, and `calibration_method = none`, serving the model's positive-class probability through `predict_risk_probability`. The phase does not change that contract. The 2026-07-14 spike resolved D-020 as a direct positive-probability explanation with SHAP 0.52.0 `TreeExplainer`, resolved D-021 with one privacy-safe 256-centroid train-derived background plus a proportionally stratified 5,000-row calibration sample, and resolved D-022 as hybrid delivery. Exact evidence is under `docs/p9-explainability/`.
 
 #### Increment 1 -- Compatibility and Technical Contract (approximately 1 day)
 
-- [ ] Run a focused compatibility spike for SHAP with Python 3.12, NumPy 2.2.6, scikit-learn 1.7.1, and the frozen D-016 `HistGradientBoostingClassifier`.
-- [ ] Evaluate `TreeExplainer`; if it cannot faithfully explain the positive-class probability served by `predict_risk_probability`, document the observed behavior and the D-020 alternatives rather than silently switching output or explainer.
-- [ ] Validate returned dimensions, the explained positive class, exact `FEATURE_COLUMNS` order, finite values, and additivity against the candidate output contract.
-- [ ] Compare the base value plus the sum of SHAP contributions with `predict_risk_probability`. For any direct served-probability alternative, the predeclared project absolute tolerance is fixed at `1e-4`; failure disqualifies that alternative rather than relaxing the guardrail. If D-020 selects a different mathematical output space, fix and justify its output-specific tolerance during the spike, before the full analysis, and never relax it after observing inconvenient results.
-- [ ] Measure representative explanation time and peak memory for the candidate explainer, background, global sample, and one-row local path.
-- [ ] Determine whether the candidate explainer or any serialized runtime asset retains its background rows, and carry that evidence into D-021 and D-022 so real train rows cannot be exposed by deployment.
-- [ ] Resolve D-020 and D-021 from spike evidence before the full global analysis begins.
-- [ ] Pin the SHAP version only after the spike passes the selected compatibility, fidelity, reproducibility, time, and memory checks.
+- [x] Run a focused compatibility spike for SHAP with Python 3.12, NumPy 2.2.6, scikit-learn 1.7.1, and the frozen D-016 `HistGradientBoostingClassifier`.
+- [x] Evaluate `TreeExplainer`; the selected probability path passed, and the raw-margin and model-agnostic alternatives plus their rejection reasons are recorded rather than substituted silently.
+- [x] Validate returned dimensions, the explained positive class, exact `FEATURE_COLUMNS` order, finite values, and additivity against the selected contract.
+- [x] Compare the base value plus the sum of SHAP contributions with `predict_risk_probability`; direct probability passed the unchanged `1e-4` absolute tolerance with a global maximum error of `1.3185956326822179e-08`.
+- [x] Measure representative explainer-creation, global-sample and one-row local time, plus approximate peak memory, against limits fixed before the final run.
+- [x] Verify SHAP's background retention: the implicit masker retained only 100 rows, while the accepted explicit `Independent` masker retains all 256 aggregate rows. No real row is serialized or deployed.
+- [x] Resolve D-020 and D-021 from spike evidence before the full global analysis.
+- [x] Pin only the compatible top-level dependency, `shap==0.52.0`, after the selected route passed.
 
 #### Increment 2 -- Offline Global Analysis (approximately 1-2 days)
 
-- [ ] Build the D-021 background deterministically from train rows only; never use calibration or test rows for the background.
-- [ ] Use a deterministic, proportionally stratified sample from calibration for global analysis so the sample preserves the calibration split's original positive-class prevalence within deterministic allocation/rounding; never use test to select the explainer configuration, sample, narrative, feature emphasis, or visualizations.
-- [ ] Start the spike with a proposed background of 256 train rows, a global-analysis sample of up to 5,000 calibration rows, and the project seed (`42`).
-- [ ] Adjust either proposed size only during the compatibility spike, and only for a documented performance or memory constraint; never adjust a size after observing explanations to favor a narrative.
-- [ ] Produce an aggregate CSV of mean absolute SHAP importance, a global bar plot, and a beeswarm plot without publishing row-level source data.
-- [ ] Create `docs/p9-explainability/report.md` with the protocol, explainer configuration, output contract, background and sample provenance, additivity evidence, versions, reproduction commands, generated-plot procedure, and limitations.
+- [x] Build the D-021 256-centroid background deterministically from train rows only; calibration and test never supply background rows.
+- [x] Use a deterministic, proportionally stratified 5,000-row calibration sample: 697 positive and 4,303 negative rows preserve source prevalence within deterministic rounding. Test selects nothing.
+- [x] Evaluate the proposed sizes of 256 and 5,000. The deterministic centroid builder uses no RNG; project seed 42 governs the proportionally stratified global sample.
+- [x] Keep both proposed sizes because they passed the predeclared performance and memory limits; no explanation result was used to resize them.
+- [x] Produce only aggregate mean-absolute importance CSV/bar output and a rendered beeswarm; publish no source row or individual global SHAP matrix.
+- [x] Create `docs/p9-explainability/report.md` with the complete reproducible technical contract and evidence.
 
 #### Increment 3 -- Local Explanations (approximately 1-2 days)
 
-- [ ] Explain the four synthetic public reference profiles already defined by the deployment contract.
-- [ ] Generate waterfall plots and contribution tables that show the base value, per-feature contributions, and final served estimate under D-020.
-- [ ] Translate encoded features and values into user-facing labels; for example, describe `Age` as a BRFSS age group rather than an exact age.
-- [ ] Validate positive-class selection, exact feature order, additivity under the selected output contract, finiteness, and fixed-seed reproducibility for every profile.
-- [ ] Prepare both simple and technical content using "increased/decreased the model's estimate" language, with no causal, diagnostic, clinical, or prescriptive interpretation.
+- [x] Explain the four synthetic public reference profiles already defined by the deployment contract.
+- [x] Generate one waterfall plot per profile and one contribution table showing the base value, all per-feature contributions, and final served estimate under D-020.
+- [x] Translate encoded features and values through the shared pure `src/feature_labels.py` source; `Age` remains a BRFSS group, not an exact age.
+- [x] Validate positive-class selection, exact feature order, additivity, finiteness, and fixed-seed reproducibility for every profile.
+- [x] Provide simple and technical content using increased/decreased model-estimate language, with no causal, diagnostic, clinical, or prescriptive interpretation.
 
 #### Increment 4 -- Integration, Regression, and Deployment (approximately 1-2 days)
 
-- [ ] Resolve D-022 before modifying Streamlit, using the spike's performance, memory, privacy, fidelity, maintenance, and user-experience evidence.
-- [ ] Implement only the selected dynamic, precomputed, or hybrid delivery approach.
-- [ ] Accept a dynamic approach only if deployed code and assets do not expose real background rows. If the faithful dynamic design would retain or reveal real rows, validate a privacy-safe aggregate or synthetic background against D-020/D-021 or reject the dynamic option in favor of a privacy-safe delivery strategy.
-- [ ] Run the complete test suite and Streamlit headless tests.
-- [ ] Confirm that the exact probabilities for all four reference profiles remain unchanged from the P8 contract.
-- [ ] Verify simple and technical wording, medical-disclaimer visibility, performance, timeout behavior where applicable, and privacy.
+- [x] Resolve D-022 as hybrid delivery from performance, memory, privacy, fidelity, maintenance, and UX evidence before Streamlit integration.
+- [x] Implement the selected hybrid route: dynamic cached local explanations plus precomputed aggregate global/reference evidence.
+- [x] Validate the deployed 256-centroid aggregate background under D-020/D-021 and prove it contains no exact real train row or target/index field.
+- [x] Run the complete test suite and Streamlit headless tests locally.
+- [x] Confirm that the exact probabilities for all four reference profiles remain unchanged from the P8 contract.
+- [x] Verify simple/technical wording, disclaimer visibility, performance/timeout bounds, error handling, and privacy locally.
 - [ ] Deploy through the existing process and pass the public smoke test; the required simple Streamlit explanation makes public verification mandatory for P9 closure.
 
 #### Expected Tests for P9
 
-- [ ] The SHAP matrix is finite and has exact shape `n x 21`.
-- [ ] The explanation targets the correct positive class and the D-020 output contract.
-- [ ] Explanation columns preserve the exact order of `src.data.FEATURE_COLUMNS`.
-- [ ] The base value plus contributions satisfies additivity with the fixed `1e-4` absolute tolerance when the served probability is explained directly; any different D-020 output space uses its own tolerance fixed and justified during the spike before full analysis, never relaxed after results, and its transformation to the served probability is explicit and tested.
-- [ ] Fixed-seed runs reproduce the background/sample selection, global importance, and four local explanations within predeclared numerical tolerances.
-- [ ] Every background row is proven to originate exclusively from train.
-- [ ] The deterministic stratified calibration sample preserves the calibration split's positive-class prevalence within its predeclared allocation/rounding tolerance.
-- [ ] Test rows cannot affect explainer configuration, background, sample selection, narrative, plots, or any P9 decision.
-- [ ] The four reference-profile probabilities are exactly conserved against the P8 contract, including their recorded displays.
-- [ ] User-facing explanation content contains no causal claims, diagnoses, or clinical recommendations and preserves the medical disclaimer.
-- [ ] Dynamic explanations, if selected by D-022, meet predeclared performance and timeout bounds.
-- [ ] Deployed explainers and assets expose no real train, calibration, or test row; a dynamic path fails privacy acceptance if it retains real background rows without an evidenced privacy-safe representation.
-- [ ] Importing Streamlit performs no model fitting, data download, or global SHAP computation.
+- [x] The SHAP matrix is finite and has exact shape `n x 21`.
+- [x] The explanation targets positive class `1` and the D-020 direct-probability contract.
+- [x] Explanation columns preserve the exact order of `src.data.FEATURE_COLUMNS`.
+- [x] Base plus contributions satisfies the unchanged `1e-4` tolerance and explicitly reproduces `predict_risk_probability`.
+- [x] Fixed-seed runs reproduce background/sample selection, global importance, and all four local explanations within predeclared tolerances.
+- [x] The aggregate background is derived exclusively from train.
+- [x] The deterministic stratified calibration sample preserves prevalence within its predeclared allocation/rounding tolerance.
+- [x] Test rows cannot affect explainer configuration, background, sample selection, narrative, plots, or any P9 decision; poisoning test leaves P9 evidence unchanged.
+- [x] The four reference-profile probabilities and recorded displays remain exactly conserved.
+- [x] User-facing content avoids causal, diagnostic, clinical, and prescriptive claims and preserves the disclaimer.
+- [x] Dynamic local explanations meet predeclared creation and warm-local time bounds.
+- [x] The deployed asset exposes no real train, calibration, or test row and contains no target, identifier, or split index.
+- [x] Importing Streamlit performs no model fitting, data download, raw-CSV read, or global SHAP computation.
 
-#### Planned P9 Deliverables (do not create during refinement)
+#### Implemented Local P9 Deliverables
 
 - `src/explainability.py`.
 - `tests/test_explainability.py`.
@@ -385,21 +385,23 @@ P9 explains the final probability contract selected in P8: the frozen D-016 `His
 
 #### P9 Scope Guardrails
 
-- [ ] Do not retrain, recalibrate, retune, or replace the D-016 model; do not regenerate the official artifact merely to add explanations.
-- [ ] Do not change thresholds, labels, or any probability returned by the P8 serving contract.
-- [ ] Do not use test data to select explanation configuration, samples, text, plots, or decisions.
-- [ ] Do not publish or deploy real dataset rows; published global artifacts must be aggregate, published local artifacts must use only the four synthetic public profiles, and runtime explainers/assets must not retain exposed real background rows.
-- [ ] Keep P10 scenario exploration and P12 fairness analysis outside P9.
-- [ ] Make no causal, diagnostic, clinical, or prescriptive claim from SHAP values.
-- [ ] Keep CI as an optional quality-track candidate or independent increment, never a prerequisite on the SHAP critical path.
+- [x] Do not retrain, recalibrate, retune, or replace the D-016 model; the official artifact was not regenerated or modified.
+- [x] Do not change thresholds, labels, or any probability returned by the P8 serving contract.
+- [x] Do not use test data to select explanation configuration, samples, text, plots, or decisions.
+- [x] Do not publish or deploy real dataset rows; global artifacts are aggregate, local artifacts use only the four synthetic profiles, and the runtime asset contains only non-matching aggregate centroids.
+- [x] Keep P10 scenario exploration and P12 fairness analysis outside P9.
+- [x] Make no causal, diagnostic, clinical, or prescriptive claim from SHAP values.
+- [x] Keep CI as an optional quality-track candidate or independent increment, never a prerequisite on the SHAP critical path.
 
 #### Definition of Done for P9
 
-- [ ] US-0602, US-0608, and US-0609 satisfy their acceptance criteria with reproducible evidence.
-- [ ] D-020, D-021, and D-022 are resolved from recorded implementation evidence.
-- [ ] Global and local explanations are mathematically faithful to the selected D-020 contract, and their relationship to the P8 served probability is explicit and verified.
-- [ ] The D-016 model, official artifact, four reference probabilities, and probability-only P8 product behavior remain unchanged unless a separately authorized contract change exists.
-- [ ] Streamlit provides the approved simple explanation for a general audience, while GitHub provides sufficient technical evidence for academic audit and reproduction.
-- [ ] Published language is non-causal, non-diagnostic, non-clinical, and non-prescriptive; the medical disclaimer remains visible.
-- [ ] The complete suite and headless checks pass, and the updated Streamlit application passes mandatory public verification.
+- [x] US-0602 and US-0608 satisfy their acceptance criteria with reproducible evidence.
+- [ ] US-0609 is locally complete but still requires commit, push, redeployment, and mandatory public verification.
+- [x] D-020, D-021, and D-022 are resolved from recorded implementation evidence.
+- [x] Global and local explanations are mathematically faithful to D-020, and their relationship to the P8 served probability is explicit and verified.
+- [x] The D-016 model, official artifact, four reference probabilities, and probability-only P8 product behavior remain unchanged.
+- [x] The local Streamlit implementation provides the approved simple explanation, while GitHub provides sufficient technical evidence for audit and reproduction.
+- [x] Published language is non-causal, non-diagnostic, non-clinical, and non-prescriptive; the medical disclaimer remains visible.
+- [x] The complete local suite and headless checks pass.
+- [ ] The updated Streamlit application passes mandatory public verification after deployment.
 - [ ] P9 moves to Done only after implementation and verification; this rolling-wave refinement leaves it Ready.

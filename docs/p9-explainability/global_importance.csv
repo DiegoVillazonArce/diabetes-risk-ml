@@ -1,0 +1,22 @@
+rank,feature,feature_label,mean_absolute_contribution
+1,GenHlth,General health (self-rated),0.0527247229057
+2,BMI,Body mass index (BMI),0.0422237197813
+3,HighBP,High blood pressure,0.035903573655
+4,Age,Age group (BRFSS),0.0308439732064
+5,HighChol,High cholesterol,0.0265576290087
+6,Income,Annual household income,0.0117370535718
+7,Sex,Sex,0.00845395933001
+8,MentHlth,Days of poor mental health in the past 30 days,0.00572485609805
+9,HeartDiseaseorAttack,Coronary heart disease or heart attack,0.00413822304666
+10,DiffWalk,Serious difficulty walking or climbing stairs,0.00342564937101
+11,Education,Education level,0.00317205907275
+12,HvyAlcoholConsump,Heavy alcohol consumption,0.00274636492726
+13,CholCheck,Cholesterol check in the past 5 years,0.00238931856214
+14,PhysHlth,Days of poor physical health in the past 30 days,0.00130379233499
+15,PhysActivity,Physical activity in the past 30 days,0.0012810540153
+16,Stroke,Ever had a stroke,0.00125255759971
+17,Fruits,Eats fruit at least once per day,0.00103726212627
+18,Smoker,Smoked at least 100 cigarettes in lifetime,0.000589813662432
+19,Veggies,Eats vegetables at least once per day,0.000390568676877
+20,AnyHealthcare,Has any kind of health care coverage,0.000161562815335
+21,NoDocbcCost,Skipped a doctor visit due to cost in the past year,8.82137108823e-05

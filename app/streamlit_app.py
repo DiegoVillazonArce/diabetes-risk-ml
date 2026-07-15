@@ -1,4 +1,4 @@
-"""Streamlit app: single-case diabetes risk estimation (P6/P8, Epics E5/E6).
+"""Streamlit app: single-case risk estimation with P9 explanation.
 
 The app is a thin UI over the P6 serving contract in `src.artifacts`: it
 loads the local D-016 model artifact once per server process (cached; the
@@ -30,8 +30,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import streamlit as st
 
-from src import artifacts
+from src import artifacts, explainability
 from src.data import VALUE_RANGES
+from src.feature_labels import (
+    AGE_GROUP_LABELS,
+    FEATURE_LABELS,
+    ORDINAL_VALUE_LABELS,
+)
 
 def medical_disclaimer(bundle: dict) -> str:
     """Medical warning whose calibration wording matches the served contract."""
@@ -71,53 +76,40 @@ def probability_contract_caption(bundle: dict) -> str:
 # Yes/no indicators rendered as checkboxes (checked = 1). `Sex` is rendered
 # separately because its 0/1 codes mean female/male, not no/yes.
 BINARY_CHECKBOX_LABELS = {
-    "HighBP": "High blood pressure",
-    "HighChol": "High cholesterol",
-    "CholCheck": "Cholesterol check in the past 5 years",
-    "Smoker": "Smoked at least 100 cigarettes in lifetime",
-    "Stroke": "Ever had a stroke",
-    "HeartDiseaseorAttack": "Coronary heart disease or heart attack",
-    "PhysActivity": "Physical activity in the past 30 days",
-    "Fruits": "Eats fruit at least once per day",
-    "Veggies": "Eats vegetables at least once per day",
-    "HvyAlcoholConsump": "Heavy alcohol consumption",
-    "AnyHealthcare": "Has any kind of health care coverage",
-    "NoDocbcCost": "Skipped a doctor visit due to cost in the past year",
-    "DiffWalk": "Serious difficulty walking or climbing stairs",
+    feature: FEATURE_LABELS[feature]
+    for feature in (
+        "HighBP",
+        "HighChol",
+        "CholCheck",
+        "Smoker",
+        "Stroke",
+        "HeartDiseaseorAttack",
+        "PhysActivity",
+        "Fruits",
+        "Veggies",
+        "HvyAlcoholConsump",
+        "AnyHealthcare",
+        "NoDocbcCost",
+        "DiffWalk",
+    )
 }
 
 # Ordinal scales: label, the BRFSS meaning of each code, and a neutral
 # default index for the form. The internal codes are never shown to users.
 ORDINAL_INPUTS = {
     "GenHlth": (
-        "General health (self-rated)",
-        {1: "Excellent", 2: "Very good", 3: "Good", 4: "Fair", 5: "Poor"},
+        FEATURE_LABELS["GenHlth"],
+        ORDINAL_VALUE_LABELS["GenHlth"],
         2,
     ),
     "Education": (
-        "Education level",
-        {
-            1: "Never attended school or only kindergarten",
-            2: "Elementary (grades 1-8)",
-            3: "Some high school (grades 9-11)",
-            4: "High school graduate or GED",
-            5: "Some college or technical school",
-            6: "College graduate (4 years or more)",
-        },
+        FEATURE_LABELS["Education"],
+        ORDINAL_VALUE_LABELS["Education"],
         3,
     ),
     "Income": (
-        "Annual household income",
-        {
-            1: "Less than $10,000",
-            2: "$10,000 to $14,999",
-            3: "$15,000 to $19,999",
-            4: "$20,000 to $24,999",
-            5: "$25,000 to $34,999",
-            6: "$35,000 to $49,999",
-            7: "$50,000 to $74,999",
-            8: "$75,000 or more",
-        },
+        FEATURE_LABELS["Income"],
+        ORDINAL_VALUE_LABELS["Income"],
         5,
     ),
 }
@@ -144,13 +136,11 @@ AGE_GROUPS = (
     (75, 79, 12, "75-79"),
     (80, MAX_AGE, 13, "80 or older"),
 )
-AGE_GROUP_LABELS = {code: label for _, _, code, label in AGE_GROUPS}
-
 # Numeric measures: label and form default; bounds come from VALUE_RANGES.
 NUMERIC_INPUTS = {
-    "BMI": ("Body mass index (BMI)", 25),
-    "MentHlth": ("Days of poor mental health in the past 30 days", 0),
-    "PhysHlth": ("Days of poor physical health in the past 30 days", 0),
+    "BMI": (FEATURE_LABELS["BMI"], 25),
+    "MentHlth": (FEATURE_LABELS["MentHlth"], 0),
+    "PhysHlth": (FEATURE_LABELS["PhysHlth"], 0),
 }
 
 
@@ -169,9 +159,161 @@ def age_to_group_code(age: int) -> int:
 
 
 @st.cache_resource(show_spinner="Loading the local model artifact ...")
-def load_model_bundle() -> dict:
-    """Load and validate the local artifact once per server process."""
+def load_model_bundle(artifact_hash: str) -> dict:
+    """Load the local artifact under a cache key bound to its byte hash."""
     return artifacts.load_artifact()
+
+
+@st.cache_resource(show_spinner="Preparing the model explanation ...")
+def load_shap_explainer(_bundle: dict, artifact_hash: str):
+    """Cache one local explainer under the model artifact's byte hash."""
+    return explainability.load_runtime_explainer(
+        _bundle, expected_artifact_sha256=artifact_hash
+    )
+
+
+def build_local_contribution_chart(display):
+    """Build a two-direction Vega-Lite chart with an explicit zero reference."""
+    chart = display.copy()
+    chart["Factor"] = chart.apply(
+        lambda row: f"{row['feature_label']}: {row['display_value']}", axis=1
+    )
+    chart["Model-estimate change (percentage points)"] = (
+        chart["contribution"] * 100
+    )
+    chart["Direction"] = chart["contribution"].map(
+        lambda value: "Increased" if value >= 0 else "Decreased"
+    )
+    chart["Display order"] = range(len(chart))
+    contribution_points = chart[
+        "Model-estimate change (percentage points)"
+    ].astype(float)
+    domain_min = min(0.0, float(contribution_points.min()))
+    domain_max = max(0.0, float(contribution_points.max()))
+    if domain_min == domain_max:
+        domain_min, domain_max = -0.01, 0.01
+    spec = {
+        "height": 300,
+        "layer": [
+            {
+                "mark": {"type": "bar", "cornerRadiusEnd": 3},
+                "encoding": {
+                    "x": {
+                        "field": "Model-estimate change (percentage points)",
+                        "type": "quantitative",
+                        "title": "Change in model estimate (percentage points)",
+                        "stack": None,
+                        "scale": {
+                            "domain": [domain_min, domain_max],
+                            "nice": True,
+                        },
+                        "axis": {"format": ".2f"},
+                    },
+                    "y": {
+                        "field": "Factor",
+                        "type": "nominal",
+                        "title": None,
+                        "sort": {"field": "Display order", "order": "ascending"},
+                        "axis": {"labelLimit": 420, "labelFontSize": 12},
+                    },
+                    "color": {
+                        "field": "Direction",
+                        "type": "nominal",
+                        "scale": {
+                            "domain": ["Increased", "Decreased"],
+                            "range": ["#D95F02", "#1B77B8"],
+                        },
+                        "legend": {"title": "Effect on model estimate"},
+                    },
+                    "tooltip": [
+                        {"field": "Factor", "type": "nominal"},
+                        {"field": "Direction", "type": "nominal"},
+                        {
+                            "field": "Model-estimate change (percentage points)",
+                            "type": "quantitative",
+                            "format": ".2f",
+                        },
+                    ],
+                },
+            },
+            {
+                "mark": {"type": "rule", "color": "#555555", "strokeWidth": 1},
+                "encoding": {"x": {"datum": 0}},
+            },
+        ],
+    }
+    return chart, spec
+
+
+def render_local_explanation(
+    bundle: dict,
+    values: dict,
+    probability: float,
+    artifact_hash: str,
+) -> None:
+    """Render a compact everyday-language explanation for the submitted case."""
+    try:
+        explainer = load_shap_explainer(bundle, artifact_hash)
+        full_table = explainability.explain_local_values(
+            bundle, explainer, values
+        )
+        explained_probability = float(full_table["model_probability"].iloc[0])
+        if abs(explained_probability - probability) > explainability.ADDITIVITY_TOLERANCE:
+            raise explainability.ExplainabilityError(
+                "The explanation does not match the displayed probability."
+            )
+        display = explainability.select_display_contributions(full_table)
+    except (FileNotFoundError, ValueError, RuntimeError) as error:
+        st.warning(
+            "A detailed model explanation is temporarily unavailable. "
+            "The probability shown above is unchanged."
+        )
+        with st.expander("Explanation error details"):
+            st.code(str(error))
+        return
+
+    st.subheader("How the model interprets this estimate")
+    st.write(
+        "The model starts from a reference estimate, then the entered values "
+        "contribute upward or downward until they reach this estimate."
+    )
+    st.metric(
+        "Model reference estimate",
+        f"{float(full_table['base_value'].iloc[0]):.1%}",
+        help=(
+            "The model output averaged over the privacy-safe aggregate "
+            "background used by this explanation."
+        ),
+    )
+
+    chart, chart_spec = build_local_contribution_chart(display)
+    st.vega_lite_chart(
+        chart,
+        chart_spec,
+        use_container_width=True,
+        theme=None,
+    )
+
+    st.markdown("**Largest contributions for this estimate**")
+    for row in display.itertuples(index=False):
+        st.markdown(
+            f"- **{row.feature_label}: {row.display_value}** {row.direction} "
+            f"by {abs(row.contribution) * 100:.2f} model-estimate percentage points."
+        )
+
+    with st.expander("What this explanation means"):
+        st.markdown(
+            "- The **model reference estimate** is the model output averaged "
+            "over a privacy-safe aggregate background. It is not the risk of "
+            "an average person.\n"
+            "- The contributions describe how this fitted model combined the "
+            "submitted values. They add to the displayed model estimate.\n"
+            "- The explanation depends on this model, its training data, and "
+            "the selected aggregate background. A different model or "
+            "background can allocate contributions differently.\n"
+            "- These contributions explain model behavior, not medical causes. "
+            "They are not a diagnosis or a recommendation."
+        )
 
 
 def render_input_form() -> tuple[dict, int] | None:
@@ -249,9 +391,15 @@ def main() -> None:
     )
 
     try:
-        bundle = load_model_bundle()
+        artifact_hash = explainability.artifact_sha256(
+            artifacts.DEFAULT_ARTIFACT_PATH
+        )
+        bundle = load_model_bundle(artifact_hash)
     except (FileNotFoundError, ValueError) as error:
-        st.error(str(error))
+        message = str(error)
+        if "python -m src.artifacts" not in message:
+            message += " Generate it with 'python -m src.artifacts'."
+        st.error(message)
         st.info(
             "Generate a valid local artifact from the project root with "
             "`python -m src.artifacts`, then reload this page."
@@ -279,6 +427,9 @@ def main() -> None:
                 f"{AGE_GROUP_LABELS[values['Age']]} model age group."
             )
             st.caption(probability_contract_caption(bundle))
+            render_local_explanation(
+                bundle, values, probability, artifact_hash
+            )
     st.warning(medical_disclaimer(bundle))
 
 

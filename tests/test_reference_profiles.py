@@ -199,8 +199,13 @@ def test_app_displays_the_recorded_profile_expectation(official_bundle, profile)
     app.button[0].set_value(True).run()
 
     assert not app.exception
-    assert len(app.metric) == 1
+    assert len(app.metric) == 2
     assert app.metric[0].value == profile.expected_display
+    assert app.metric[1].label == "Model reference estimate"
+    assert any(
+        subheader.value == "How the model interprets this estimate"
+        for subheader in app.subheader
+    )
     age_label = module.AGE_GROUP_LABELS[profile.age_group_code]
     assert any(
         f"{age_label} model age group" in caption.value for caption in app.caption

@@ -231,13 +231,13 @@ P9 is a read-only explanation layer over this contract. It must not retrain, rec
 
 ### Explanation Output and Positive Class (D-020)
 
-The preferred explanation output is the exact positive-class probability served by `predict_risk_probability`, because that is the quantity users see. That preference is not an assumed SHAP capability: the Increment 1 spike must establish whether `TreeExplainer` can reproduce that probability faithfully and additively for the pinned stack and `HistGradientBoostingClassifier`.
+The accepted explanation output is the exact positive-class probability served by `predict_risk_probability`, because that is the quantity users see. The 2026-07-14 Increment 1 spike established that SHAP 0.52.0 `TreeExplainer` reproduces this probability faithfully and additively for the pinned stack and `HistGradientBoostingClassifier`.
 
-D-020 must select and document one evidenced contract:
+D-020 evaluated the three planned contracts:
 
-- Explain the served positive-class probability directly with `TreeExplainer` when the compatibility and additivity checks pass.
-- Explain the raw model margin, with the output transformation and its communication to users made explicit and tested.
-- Use a model-agnostic fallback when TreeExplainer cannot faithfully reproduce the served contract within the declared resource bounds.
+- **Accepted:** explain the served positive-class probability directly with `TreeExplainer`, `feature_perturbation="interventional"`, `model_output="probability"`, positive class `1`, and an explicit 256-row masker. The 5,000-row maximum absolute additivity error is `1.3185956326822179e-08`, below the unchanged `1e-4` limit.
+- **Rejected:** explain the raw model margin. It was faithful and its sigmoid mapping reproduced the served probability, but it unnecessarily moves additive contributions into log-odds and would complicate non-technical communication.
+- **Rejected:** use a model-agnostic permutation fallback. It was faithful, but the latest reproducible evidence run projected 779.21 seconds for 5,000 rows from its measured 20-row benchmark, exceeding the predeclared 60-second global limit.
 
 No implementation may silently switch from probability to margin, from the positive class to another output, or from TreeExplainer to a fallback. The explainer configuration must record the explained model/output, model-output setting, feature order, expected-value shape, SHAP-value shape, and positive-class selection. For an analysis sample of `n` rows, the normalized project contract must yield a finite `n x 21` contribution matrix aligned exactly to `src.data.FEATURE_COLUMNS`.
 
@@ -252,13 +252,13 @@ Global mean absolute importance does not provide direction or establish an inter
 
 ### Background and Analysis Sample Policy (D-021)
 
-D-021 must freeze the origin, size, seed, sampling policy, privacy treatment, and intended use of both the explainer background and the global-analysis sample before the full analysis begins.
+D-021 freezes the origin, size, seed, sampling policy, privacy treatment, and intended use of both the explainer background and the global-analysis sample as accepted on 2026-07-14.
 
-Initial proposal for the Increment 1 spike:
+Accepted policy after the Increment 1 spike:
 
-- Background: 256 rows sampled deterministically from train only.
-- Global-analysis sample: up to 5,000 rows sampled deterministically and proportionally stratified by the target from calibration, preserving the calibration split's original positive-class prevalence within deterministic allocation/rounding.
-- Random seed: the project seed, `42`.
+- Background: 256 deterministic arithmetic centroids derived only from train. Train rows are stably sorted by frozen-model positive probability and partitioned into consecutive bands; each centroid aggregates 693 or 694 rows and no centroid exactly matches a train row. An explicit `shap.maskers.Independent(..., max_samples=256)` retains all 256 requested rows; the implicit masker was rejected because it retained only 100.
+- Global-analysis sample: exactly 5,000 rows sampled deterministically and proportionally stratified by the target from calibration (697 positive and 4,303 negative), preserving source prevalence within deterministic allocation rounding (`0.1394` versus `0.13934878587196467`).
+- Project seed: `42`; it governs proportional stratification of the global calibration sample. The stable-sort/arithmetic-centroid background construction uses no random operation.
 
 The offline analysis background must never contain calibration or test rows. Calibration is reserved for the fixed global explanation sample because the model was not trained on those rows; test remains excluded from all P9 configuration and communication decisions. Test must not select the explainer, output space, background, sample, tolerance, narrative, feature emphasis, or visualization. The proposed sizes may change only during the compatibility spike for a recorded performance or memory constraint, never after observing SHAP results to favor a narrative.
 
@@ -266,7 +266,7 @@ Published evidence must identify split provenance and sampling rules without exp
 
 ### Compatibility, Fidelity, and Additivity
 
-The spike must run against the frozen project stack before a SHAP version is added to `requirements.txt`: Python 3.12, NumPy 2.2.6, scikit-learn 1.7.1, and the frozen D-016 `HistGradientBoostingClassifier`. It must evaluate `TreeExplainer` first, record errors or unsupported output behavior, measure representative time and peak memory, and compare any necessary fallback without choosing it silently. The SHAP version is pinned only after the selected path passes these checks.
+The spike ran against the frozen project stack before SHAP was added to `requirements.txt`: Python 3.12, NumPy 2.2.6, pandas 2.3.1, scikit-learn 1.7.1, and the frozen D-016 `HistGradientBoostingClassifier`. It evaluated `TreeExplainer` first, recorded the implicit-background reduction, measured representative time and approximate peak memory, and compared the raw-margin and model-agnostic alternatives without a silent switch. Only after the selected path passed was the top-level dependency pinned as `shap==0.52.0`.
 
 For each global-analysis row and each public reference profile, validate the SHAP identity in the D-020 output space:
 
@@ -298,7 +298,7 @@ User-facing contribution text should use formulations such as "increased the mod
 
 ### Simple Streamlit Communication
 
-Subject to D-022's delivery choice, P9 must add a section similar to "How the model interprets this estimate" after a prediction. It should be visual, progressive, and written in everyday language for people without AI expertise:
+Under accepted D-022 hybrid delivery, P9 adds "How the model interprets this estimate" after a valid prediction. It is visual, progressive, and written in everyday language for people without AI expertise:
 
 - Begin with a short explanation that some entered variables pushed this model estimate up and others pushed it down relative to its reference value.
 - Prioritize a compact visual and the most material contributions; avoid formulas, raw SHAP terminology, and unnecessary mathematics in the primary view.
@@ -306,11 +306,11 @@ Subject to D-022's delivery choice, P9 must add a section similar to "How the mo
 - Keep the existing medical disclaimer visible and preserve probability-only behavior.
 - Do not turn explanations into recommended actions, clinical interpretations, or a P10 scenario explorer.
 
-D-022 must decide whether local explanations are dynamic, precomputed, or hybrid before Streamlit is modified. The evidence must cover runtime, memory, privacy, fidelity, maintenance, and non-technical user experience. A dynamic option may be accepted only if deployed code and assets do not expose or retain accessible real background rows. If the faithful dynamic path would ship real rows, it must use a separately validated aggregate or synthetic background that still passes D-020/D-021, or the dynamic option must be rejected. If dynamic explanations are selected, performance and timeout bounds must also be declared and tested; importing Streamlit must never fit a model, download data, or compute the global SHAP analysis. Because the simple Streamlit explanation is required in every D-022 outcome, P9 closure always requires redeployment and a successful public smoke test.
+D-022 accepted hybrid delivery before Streamlit was modified: the submitted input receives a dynamic local explanation from a cached explainer and the accepted aggregate background, while global and four-profile technical evidence is precomputed offline. Precomputed-only delivery was rejected because it cannot explain an arbitrary user input honestly; dynamic-only delivery was rejected because it would omit a stable audit package. The deployable asset exposes no real background row. Streamlit creates and caches a `TreeExplainer` from that asset under the official artifact hash, but never trains a model, derives the background, downloads data, reads the raw CSV, or computes the global analysis. Widget values exist transiently in the active session; project code neither writes nor logs them outside it. Creation, warm-local, global, and memory bounds were declared before the final run and are tested and reported. P9 closure still requires redeployment and a successful healthy-path public smoke test; missing/corrupt background and explainer failures are verified locally/headlessly without deliberately breaking the public deployment.
 
 ### Technical GitHub Communication
 
-The future `docs/p9-explainability/report.md` must allow an academic or technical reviewer to audit and reproduce P9. It must document the methodology, base value, contribution definition, explainer configuration, background, global sample, seed, positive class, output mapping, additivity evidence, reproducibility results, versions, limitations, performance/memory evidence, privacy treatment, and plot-generation process. It should link the aggregate global-importance CSV, the local-contribution CSV for the four public profiles, the global bar and beeswarm plots, and the local waterfall plots or evidenced equivalent.
+`docs/p9-explainability/report.md` allows an academic or technical reviewer to audit and reproduce P9. It documents the methodology, base value, contribution definition, explainer configuration, background, global sample, seed, positive class, output mapping, additivity evidence, reproducibility results, versions, limitations, performance/memory evidence, privacy treatment, and plot-generation process. It links the aggregate global-importance CSV, the local-contribution CSV for the four public profiles, the global bar and beeswarm plots, and four local waterfall plots.
 
 The simple Streamlit explanation and technical report describe the same D-020 contract but serve different audiences. The app must not expose real dataset rows, a full academic methods section, or unnecessary mathematical detail; the GitHub report must not replace technical evidence with simplified UI copy.
 
@@ -326,7 +326,7 @@ SHAP explains the behavior of the fitted model under a chosen explainer, backgro
 - Explanations must never be converted into intervention advice or claims that changing an input will change a person's real medical risk; controlled scenario exploration belongs to P10 and is outside P9.
 - Fairness conclusions do not follow from global or local SHAP results; subgroup auditing belongs to P12.
 
-Planned implementation deliverables are `src/explainability.py`, `tests/test_explainability.py`, `docs/p9-explainability/report.md`, aggregate global and synthetic-profile local CSV files, global bar and beeswarm plots, local waterfall plots or the approved equivalent, controlled Streamlit changes only after D-022, and a SHAP dependency pin only after the compatibility spike. None of these deliverables is created during the P9 planning refinement.
+Implemented local deliverables are `src/explainability.py`, `src/feature_labels.py`, `tests/test_explainability.py`, `docs/p9-explainability/report.md`, structured configuration/spike/additivity evidence, aggregate global and synthetic-profile local CSV files, global bar and beeswarm plots, four local waterfall plots, the separate `models/shap_background_v1.json` aggregate asset, controlled Streamlit changes after D-022, and the post-spike `shap==0.52.0` pin. They remain unstaged for review. The official P8 artifact and served probabilities were not modified. P9 stays Ready until the external US-0609 closure steps finish.
 
 ## Scenario Exploration Plan
 

@@ -1,0 +1,6 @@
+scope,n_rows,base_value,model_probability,max_absolute_error,mean_absolute_error,tolerance,passes
+global_calibration_sample_aggregate,5000,,,1.31859563268e-08,2.54949106799e-09,0.0001,True
+low_risk_young_healthy,1,0.17172108293,0.00300138471902,2.82065829114e-09,2.82065829114e-09,0.0001,True
+high_risk_cardiac_smoker,1,0.17172108293,0.600000943118,1.12852496237e-08,1.12852496237e-08,0.0001,True
+high_risk_poor_health,1,0.17172108293,0.699987950051,7.91857091009e-09,7.91857091009e-09,0.0001,True
+high_risk_severe_obesity_cardiac,1,0.17172108293,0.799000716697,7.76477826481e-09,7.76477826481e-09,0.0001,True

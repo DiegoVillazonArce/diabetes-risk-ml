@@ -6,7 +6,7 @@ Machine Learning app to estimate self-reported diabetes/prediabetes risk using B
 
 ## Current Status
 
-Phases P0-P8 are complete, including public deployment and the post-MVP probability-quality work. The frozen D-016 `HistGradientBoostingClassifier` remains the selected model; D-018 accepted `calibration_method = none`, so the schema-version-2 artifact serves the model's positive-class probability without a post-hoc calibrator; and D-019 retains a probability-only product with no decision threshold or high/low-risk label. P9 has now been refined through rolling-wave planning and is Ready, but SHAP explainability is not implemented yet. The next step is P9 Increment 1: validate SHAP compatibility with the pinned stack and resolve the explanation-output and background contracts from evidence. Until P9 is implemented and verified, the public Streamlit application continues serving the final P8 probability contract unchanged, including the medical disclaimer and the four reference-profile displays at exactly 0.3%, 60.0%, 70.0%, and 79.9%.
+Phases P0-P8 are complete, including public deployment and the post-MVP probability-quality work. The frozen D-016 `HistGradientBoostingClassifier` remains the selected model; D-018 accepted `calibration_method = none`, so the schema-version-2 artifact serves the model's positive-class probability without a post-hoc calibrator; and D-019 retains a probability-only product with no decision threshold or high/low-risk label. P9 remains Ready while its local implementation is complete and validated: SHAP 0.52.0 explains that exact positive-class probability, reproducible aggregate/global and synthetic-profile evidence lives under `docs/p9-explainability/`, and the local Streamlit code provides a privacy-safe dynamic explanation without changing the P8 estimate. D-020, D-021, and D-022 are Accepted; US-0602 and US-0608 are Done; US-0609 remains In Progress until the user reviews, commits, pushes, redeploys, and completes the mandatory public smoke test. The public Streamlit revision therefore continues serving P8, including the medical disclaimer and the four reference-profile displays at exactly 0.3%, 60.0%, 70.0%, and 79.9%, until those external closure steps occur.
 
 ## Run It Locally
 
@@ -74,7 +74,15 @@ With the raw CSV in place the whole suite runs, including the real-data integrat
 python -m streamlit run app/streamlit_app.py
 ```
 
-The app loads the local artifact once, renders the 21-feature input form, and shows the schema-version-2 contract's positive-class probability as an educational risk percentage with a visible medical disclaimer. The current D-018 outcome is `none`, so the UI explicitly identifies the probability as uncalibrated and explains that neither post-hoc method met the pre-declared adoption criteria; D-019 adds no decision threshold or high/low-risk label.
+The app loads the local artifact and the separate privacy-safe SHAP background asset once, renders the 21-feature input form, and shows the schema-version-2 contract's positive-class probability as an educational risk percentage with a visible medical disclaimer. After a valid prediction, the local P9 implementation adds a compact explanation of the largest factors that increased or decreased the model's estimate relative to its reference estimate. The current D-018 outcome is `none`, so the UI still identifies the probability as uncalibrated; D-019 still adds no decision threshold or high/low-risk label. Streamlit does not read the raw CSV, derive the background, train a model, or run the global analysis. It creates and caches the local `TreeExplainer` from the versioned aggregate asset; widget values remain transient within the active session, and project code neither writes nor logs them outside that session.
+
+To reproduce the complete P9 technical evidence offline (the local CSV is required), run:
+
+```
+python -m src.explainability
+```
+
+The command deterministically rebuilds only aggregate global outputs and explanations for the four already-public synthetic reference profiles under `docs/p9-explainability/`. It also refreshes the separately versioned `models/shap_background_v1.json`, which contains 256 train-derived aggregate centroids and no target, split indices, identifiers, or exact real row. It never rewrites the official P8 model artifact.
 
 ## Troubleshooting: artifact and environment incompatibility
 
@@ -114,9 +122,9 @@ tests/             # Pytest suite, including deployment reference profiles
 data/
   raw/             # Local raw dataset (git-ignored; manual Kaggle download)
   processed/       # Generated intermediate datasets (git-ignored; currently empty)
-models/            # Model artifacts: diabetes_risk_model.joblib is the official
-                   # version-controlled artifact (D-013); all others are git-ignored
-docs/              # Planning and analysis documentation
+models/            # Official P8 model artifact plus the separate privacy-safe P9
+                   # aggregate SHAP background asset
+docs/              # Planning and reproducible aggregate analysis documentation
 ```
 
 ## Dataset

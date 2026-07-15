@@ -14,10 +14,11 @@ temporary artifact, with clear errors for missing or corrupt artifacts.
 import importlib.util
 import inspect
 
+import pandas as pd
 import pytest
 import streamlit as st
 
-from src import artifacts, calibration, data
+from src import artifacts, calibration, data, explainability
 from tests.test_modeling import make_splits
 
 APP_PATH = data.PROJECT_ROOT / "app" / "streamlit_app.py"
@@ -34,9 +35,29 @@ def import_app(name: str):
 @pytest.fixture()
 def tmp_artifact(tmp_path, monkeypatch):
     """A valid artifact in a pytest tmp dir, wired in as the app's default."""
-    bundle = artifacts.build_artifact_bundle(make_splits())
+    splits = make_splits()
+    bundle = artifacts.build_artifact_bundle(splits)
     path = artifacts.save_artifact(bundle, tmp_path / "diabetes_risk_model.joblib")
     monkeypatch.setattr(artifacts, "DEFAULT_ARTIFACT_PATH", path)
+    # The small shared modeling fixture has only 210 train rows; repeat its
+    # feature frame solely to exercise the fixed 256-row asset contract.
+    test_background_source = pd.concat(
+        [splits.train[data.FEATURE_COLUMNS]] * 3, ignore_index=True
+    )
+    background = explainability.build_aggregate_background(
+        bundle["model"], test_background_source
+    )
+    payload = explainability.background_asset_payload(
+        background,
+        model_artifact_sha256=explainability.artifact_sha256(path),
+        n_source_rows=len(test_background_source),
+    )
+    background_path = explainability.write_background_asset(
+        payload, tmp_path / "shap_background_v1.json"
+    )
+    monkeypatch.setattr(
+        explainability, "BACKGROUND_ASSET_PATH", background_path
+    )
     return path
 
 
@@ -54,6 +75,9 @@ def test_app_import_is_side_effect_free(monkeypatch):
     monkeypatch.setattr(artifacts, "load_artifact", forbidden)
     monkeypatch.setattr(artifacts, "build_artifact_bundle", forbidden)
     monkeypatch.setattr(data, "prepare_data", forbidden)
+    monkeypatch.setattr(explainability, "generate_evidence", forbidden)
+    monkeypatch.setattr(explainability, "build_aggregate_background", forbidden)
+    monkeypatch.setattr(explainability, "select_global_sample", forbidden)
 
     module = import_app("streamlit_app_import_check")
 
@@ -133,6 +157,82 @@ def test_app_source_never_trains_or_reloads_data():
         "joblib",
     ):
         assert forbidden not in source
+
+
+def test_app_source_never_runs_global_shap_or_persists_inputs():
+    source = APP_PATH.read_text(encoding="utf-8")
+    for forbidden in (
+        "generate_evidence",
+        "select_global_sample",
+        "build_aggregate_background",
+        "global_importance",
+        "to_csv",
+        "write_text",
+        "session_state",
+    ):
+        assert forbidden not in source
+
+
+def test_explainer_cache_is_keyed_by_artifact_hash(monkeypatch):
+    module = import_app("streamlit_app_explainer_cache_key")
+    calls = []
+
+    def fake_runtime_loader(_bundle, *, expected_artifact_sha256):
+        calls.append(expected_artifact_sha256)
+        return object()
+
+    monkeypatch.setattr(
+        explainability, "load_runtime_explainer", fake_runtime_loader
+    )
+    st.cache_resource.clear()
+    first_hash = "a" * 64
+    second_hash = "b" * 64
+
+    first = module.load_shap_explainer({}, first_hash)
+    repeated = module.load_shap_explainer({}, first_hash)
+    second = module.load_shap_explainer({}, second_hash)
+
+    assert first is repeated
+    assert second is not first
+    assert calls == [first_hash, second_hash]
+
+
+def test_local_chart_has_two_directions_full_labels_and_zero_rule():
+    module = import_app("streamlit_app_local_chart_contract")
+    display = pd.DataFrame(
+        {
+            "feature_label": [
+                "General health (self-rated)",
+                "Serious difficulty walking or climbing stairs",
+            ],
+            "display_value": ["Poor", "No"],
+            "contribution": [0.12, -0.08],
+        }
+    )
+
+    chart, spec = module.build_local_contribution_chart(display)
+
+    assert set(chart["Direction"]) == {"Increased", "Decreased"}
+    assert chart["Factor"].str.contains(
+        "Serious difficulty walking or climbing stairs", regex=False
+    ).any()
+    bar, zero_rule = spec["layer"]
+    color = bar["encoding"]["color"]
+    assert color["scale"]["domain"] == ["Increased", "Decreased"]
+    assert len(set(color["scale"]["range"])) == 2
+    assert bar["encoding"]["x"]["stack"] is None
+    x_domain = bar["encoding"]["x"]["scale"]["domain"]
+    assert x_domain[0] <= chart[
+        "Model-estimate change (percentage points)"
+    ].min()
+    assert x_domain[1] >= chart[
+        "Model-estimate change (percentage points)"
+    ].max()
+    assert x_domain[0] <= 0 <= x_domain[1]
+    assert x_domain[0] < x_domain[1]
+    assert bar["encoding"]["y"]["axis"]["labelLimit"] >= 400
+    assert zero_rule["mark"]["type"] == "rule"
+    assert zero_rule["encoding"]["x"]["datum"] == 0
 
 
 def test_app_shows_disclaimer_and_uses_the_artifact_helpers():
@@ -222,13 +322,75 @@ def test_app_renders_and_predicts_headlessly(tmp_artifact):
     app.button[0].set_value(True).run()
 
     assert not app.exception
-    assert len(app.metric) == 1
+    assert len(app.metric) == 2
     displayed = app.metric[0].value
     assert displayed.endswith("%")
     probability = float(displayed.rstrip("%")) / 100
     assert 0.0 <= probability <= 1.0
     assert any("40-44 model age group" in caption.value for caption in app.caption)
+    assert any(
+        subheader.value == "How the model interprets this estimate"
+        for subheader in app.subheader
+    )
+    rendered_text = " ".join(
+        element.value for element in [*app.markdown, *app.text]
+    ).lower()
+    assert "increased the model estimate" in rendered_text
+    assert "decreased the model estimate" in rendered_text
     assert len(app.warning) >= 1  # disclaimer visible alongside the prediction
+
+
+def test_explanation_is_hidden_until_a_valid_submission(tmp_artifact):
+    from streamlit.testing.v1 import AppTest
+
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30)
+    app.run()
+    assert not any(
+        subheader.value == "How the model interprets this estimate"
+        for subheader in app.subheader
+    )
+    app.button[0].set_value(True).run()
+    assert any(
+        subheader.value == "How the model interprets this estimate"
+        for subheader in app.subheader
+    )
+
+
+def test_app_keeps_probability_visible_when_explainer_fails(
+    tmp_artifact, tmp_path, monkeypatch
+):
+    from streamlit.testing.v1 import AppTest
+
+    monkeypatch.setattr(
+        explainability, "BACKGROUND_ASSET_PATH", tmp_path / "missing-background.json"
+    )
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30)
+    app.run()
+    app.button[0].set_value(True).run()
+
+    assert not app.exception
+    assert len(app.metric) == 1
+    assert app.metric[0].value.endswith("%")
+    assert any(
+        "explanation is temporarily unavailable" in warning.value.lower()
+        for warning in app.warning
+    )
+    assert any("medical disclaimer" in warning.value.lower() for warning in app.warning)
+
+
+def test_app_explanation_wording_is_non_causal_and_probability_only():
+    source = APP_PATH.read_text(encoding="utf-8").lower()
+    for forbidden_claim in (
+        "causes diabetes",
+        "prevents diabetes",
+        "will reduce your risk",
+        "recommended intervention",
+        "high-risk label",
+        "low-risk label",
+    ):
+        assert forbidden_claim not in source
 
 
 def test_app_shows_clear_error_when_artifact_is_missing(tmp_path, monkeypatch):

@@ -1,0 +1,126 @@
+{
+  "artifact": {
+    "calibration_method": "none",
+    "model_class": "HistGradientBoostingClassifier",
+    "path": "models/diabetes_risk_model.joblib",
+    "schema_version": 2,
+    "sha256": "957c14ff5a490bbc60822121a889f92ee2a6a20f797eef741a710d887ecc9216",
+    "size_bytes": 269991
+  },
+  "background": {
+    "asset_path": "models/shap_background_v1.json",
+    "construction": "Train-only arithmetic-mean centroids over 256 stable bands sorted by the frozen model's positive-class probability",
+    "contains_source_indices": false,
+    "contains_target": false,
+    "effective_rows": 256,
+    "exact_train_row_matches": 0,
+    "maximum_source_rows_per_centroid": 694,
+    "minimum_source_rows_per_centroid": 693,
+    "project_seed": 42,
+    "requested_rows": 256,
+    "schema_version": 1,
+    "source_split": "train"
+  },
+  "decisions": {
+    "D-020": "Accepted",
+    "D-021": "Accepted",
+    "D-022": "Accepted"
+  },
+  "explainer": {
+    "expected_value_shape": [],
+    "feature_columns": [
+      "HighBP",
+      "HighChol",
+      "CholCheck",
+      "BMI",
+      "Smoker",
+      "Stroke",
+      "HeartDiseaseorAttack",
+      "PhysActivity",
+      "Fruits",
+      "Veggies",
+      "HvyAlcoholConsump",
+      "AnyHealthcare",
+      "NoDocbcCost",
+      "GenHlth",
+      "MentHlth",
+      "PhysHlth",
+      "DiffWalk",
+      "Sex",
+      "Age",
+      "Education",
+      "Income"
+    ],
+    "feature_perturbation": "interventional",
+    "model_output": "probability",
+    "output_contract": "positive_class_probability",
+    "positive_class": 1,
+    "shap_values_shape": [
+      5000,
+      21
+    ],
+    "type": "TreeExplainer"
+  },
+  "generated_files": [
+    "report.md",
+    "configuration.json",
+    "spike_results.json",
+    "global_importance.csv",
+    "local_contributions.csv",
+    "additivity_checks.csv",
+    "global_importance_bar.png",
+    "global_beeswarm.png",
+    "waterfall_low_risk_young_healthy.png",
+    "waterfall_high_risk_cardiac_smoker.png",
+    "waterfall_high_risk_poor_health.png",
+    "waterfall_high_risk_severe_obesity_cardiac.png"
+  ],
+  "global_sample": {
+    "absolute_prevalence_difference": 5.121412803532621e-05,
+    "negative_rows": 4303,
+    "positive_rows": 697,
+    "random_seed": 42,
+    "rows": 5000,
+    "sample_prevalence": 0.1394,
+    "selection": "deterministic proportional stratification",
+    "source_prevalence": 0.13934878587196467,
+    "source_split": "calibration"
+  },
+  "performance": {
+    "creation_seconds": 3.0701215999979468,
+    "global_seconds": 19.38824399999794,
+    "one_local_seconds": 0.016028599999117432,
+    "process_peak_increment_mib": 0.0,
+    "python_peak_mib": 4.211861610412598,
+    "repeat_global_seconds": 18.653318600001512
+  },
+  "performance_limits": {
+    "creation_seconds": 5.0,
+    "global_seconds": 60.0,
+    "incremental_memory_mib": 512.0,
+    "warm_local_seconds": 0.25
+  },
+  "reproducibility": {
+    "background_max_difference": 0.0,
+    "global_contribution_max_difference": 0.0,
+    "global_importance_max_difference": 0.0,
+    "global_sample_exact_match": true,
+    "local_contribution_max_difference": 0.0,
+    "tolerance": 1e-10
+  },
+  "schema_version": 1,
+  "stack": {
+    "joblib": "1.5.1",
+    "matplotlib": "3.10.3",
+    "numpy": "2.2.6",
+    "pandas": "2.3.1",
+    "python": "3.12.7",
+    "scikit_learn": "1.7.1",
+    "shap": "0.52.0"
+  },
+  "tolerances": {
+    "probability_additivity_absolute": 0.0001,
+    "raw_margin_absolute": 1e-06,
+    "reproducibility_absolute": 1e-10
+  }
+}

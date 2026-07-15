@@ -1,0 +1,129 @@
+{
+  "alternatives": [
+    {
+      "creation_seconds": 0.046106900001177564,
+      "effective_background_rows": 100,
+      "explainer": "TreeExplainer",
+      "feature_perturbation": "interventional",
+      "model_output": "probability",
+      "name": "tree_probability_real_background_implicit_masker",
+      "observed_issue": "SHAP's implicit Independent masker reduced 256 requested rows to its default max_samples=100.",
+      "requested_background_rows": 256,
+      "status": "rejected"
+    },
+    {
+      "creation_seconds": 2.3057508999991114,
+      "effective_background_rows": 256,
+      "expected_value_shape": [],
+      "explainer": "TreeExplainer",
+      "feature_perturbation": "interventional",
+      "finite": true,
+      "global_additivity_max": null,
+      "global_additivity_mean": null,
+      "global_seconds": null,
+      "margin_to_probability_max_error": null,
+      "model_output": "probability",
+      "name": "tree_probability_real_background_explicit_256",
+      "one_local_seconds": 0.005427600000984967,
+      "positive_class": 1,
+      "process_peak_increment_mib": 0.0,
+      "profile_additivity_max": 1.1834901059160075e-08,
+      "profile_additivity_mean": 9.143435141184889e-09,
+      "python_peak_mib": 0.5530271530151367,
+      "rejection_reason": "A real-row background may be used offline but cannot be deployed.",
+      "requested_background_rows": 256,
+      "shap_values_shape": [
+        4,
+        21
+      ],
+      "status": "rejected"
+    },
+    {
+      "creation_seconds": 3.0701215999979468,
+      "effective_background_rows": 256,
+      "expected_value_shape": [],
+      "explainer": "TreeExplainer",
+      "feature_perturbation": "interventional",
+      "finite": true,
+      "global_additivity_max": 1.3185956326822179e-08,
+      "global_additivity_mean": 2.5494910679891343e-09,
+      "global_seconds": 19.38824399999794,
+      "margin_to_probability_max_error": null,
+      "model_output": "probability",
+      "name": "tree_probability_safe_aggregate_background_256",
+      "one_local_seconds": 0.016028599999117432,
+      "positive_class": 1,
+      "process_peak_increment_mib": 0.0,
+      "profile_additivity_max": 1.1285249623682603e-08,
+      "profile_additivity_mean": 7.447314272429964e-09,
+      "python_peak_mib": 4.211861610412598,
+      "requested_background_rows": 256,
+      "shap_values_shape": [
+        4,
+        21
+      ],
+      "status": "accepted"
+    },
+    {
+      "creation_seconds": 2.344335299996601,
+      "effective_background_rows": 256,
+      "expected_value_shape": [],
+      "explainer": "TreeExplainer",
+      "feature_perturbation": "interventional",
+      "finite": true,
+      "global_additivity_max": 8.93154838976784e-08,
+      "global_additivity_mean": 2.5159750574879873e-08,
+      "global_seconds": 16.403095500001655,
+      "margin_to_probability_max_error": 2.0258800192962667e-08,
+      "model_output": "raw",
+      "name": "tree_raw_margin_safe_aggregate_background_256",
+      "one_local_seconds": 0.0040675999989616685,
+      "positive_class": 1,
+      "process_peak_increment_mib": 0.0,
+      "profile_additivity_max": 8.430575121343153e-08,
+      "profile_additivity_mean": 5.889495170718906e-08,
+      "python_peak_mib": 3.1848535537719727,
+      "rejection_reason": "It is faithful but explains log-odds and requires an unnecessary transformation before reaching the probability users see.",
+      "requested_background_rows": 256,
+      "shap_values_shape": [
+        4,
+        21
+      ],
+      "status": "rejected"
+    },
+    {
+      "benchmark_rows": 20,
+      "benchmark_seconds": 3.116843899999367,
+      "creation_seconds": 0.0009289000008720905,
+      "effective_background_rows": 256,
+      "expected_value_shape": [
+        1
+      ],
+      "explainer": "PermutationExplainer",
+      "feature_perturbation": "model_agnostic_independent_masker",
+      "finite": true,
+      "global_additivity_max": null,
+      "global_additivity_mean": null,
+      "global_not_run_reason": "The deterministic 20-row projection exceeded the predeclared 60-second global limit.",
+      "global_seconds": null,
+      "margin_to_probability_max_error": null,
+      "model_output": "positive_class_probability_callable",
+      "name": "permutation_probability_safe_aggregate_background_256",
+      "one_local_seconds": 15.007633299999725,
+      "positive_class": 1,
+      "process_peak_increment_mib": 0.0,
+      "profile_additivity_max": 8.673617379884035e-19,
+      "profile_additivity_mean": 8.673617379884035e-19,
+      "projected_global_seconds": 779.2109749998417,
+      "python_peak_mib": 36.73610782623291,
+      "rejection_reason": "Cold local and projected global runtimes exceed the declared limits.",
+      "requested_background_rows": 256,
+      "shap_values_shape": [
+        1,
+        21
+      ],
+      "status": "rejected"
+    }
+  ],
+  "shap_version": "0.52.0"
+}
