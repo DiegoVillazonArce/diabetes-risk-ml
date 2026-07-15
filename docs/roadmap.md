@@ -55,7 +55,7 @@ Advanced post-MVP features include calibration depth, SHAP polish, model scenari
 | P7 | MVP Documentation and Deployment | Prepare README, run instructions, tests, artifact notes, and first public deployment. | Yes | Done |
 | P8 | Probability Calibration and Threshold Analysis | Improve probability honesty and explain decision threshold trade-offs. | No | Done |
 | P9 | Explainability with SHAP | Explain the final P8 probability contract globally and locally with SHAP, preserving its predictions and providing both an accessible Streamlit explanation and reproducible technical evidence, with non-causal, non-medical wording. | No | Done |
-| P10 | Model Scenario Explorer | Add carefully framed what-if simulations for selected modifiable inputs. | No | Future |
+| P10 | Model Scenario Explorer | Compare the original model estimate with one controlled hypothetical scenario over an explicitly approved feature whitelist, using non-causal, non-medical language and preserving the P8/P9 contracts. | No | Ready |
 | P11 | Batch Prediction Workflow | Add CSV upload, schema validation, templates, and downloadable predictions. | No | Future |
 | P12 | Fairness Audit | Evaluate model behavior across demographic and socioeconomic subgroups. | No | Future |
 | P13 | Product Polish and Portfolio Packaging | Improve UX, architecture page, demo assets, and final CV narrative. | No | Future |

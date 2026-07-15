@@ -252,7 +252,7 @@ P6 provides the planning evidence for this refinement: the validated single-bund
 
 ## Epic E6: Post-MVP Enhancements
 
-The P8 stories -- US-0601 (calibration evaluation and selection), US-0606 (threshold analysis and trade-offs), and US-0607 (schema-version-2 artifact and app integration) -- were refined to Ready on 2026-07-11, implemented on 2026-07-12/13, and closed on 2026-07-13 after implementation commit `5798a0e` was pushed and the Streamlit deployment passed its public smoke verification. D-018 and D-019 are Accepted, and all three P8 stories are Done. The leakage-safe protocol lives in `docs/ml-analysis-plan.md`, evidence in `docs/p8-calibration/report.md`, and execution history in `docs/iteration-log.md`. P9 was implemented and closed on 2026-07-14: D-020, D-021, and D-022 are Accepted; US-0602, US-0608, and US-0609 are Done; implementation commit `25c4ed4` was pushed; and the rebooted Streamlit deployment passed the mandatory public explanation and four-profile smoke verification. Scenario exploration (P10), batch prediction (P11), and fairness audit (P12) remain Deferred for their later rolling-wave refinements.
+The P8 stories -- US-0601 (calibration evaluation and selection), US-0606 (threshold analysis and trade-offs), and US-0607 (schema-version-2 artifact and app integration) -- were refined to Ready on 2026-07-11, implemented on 2026-07-12/13, and closed on 2026-07-13 after implementation commit `5798a0e` was pushed and the Streamlit deployment passed its public smoke verification. D-018 and D-019 are Accepted, and all three P8 stories are Done. The leakage-safe protocol lives in `docs/ml-analysis-plan.md`, evidence in `docs/p8-calibration/report.md`, and execution history in `docs/iteration-log.md`. P9 was implemented and closed on 2026-07-14: D-020, D-021, and D-022 are Accepted; US-0602, US-0608, and US-0609 are Done; implementation commit `25c4ed4` was pushed; and the rebooted Streamlit deployment passed the mandatory public explanation and four-profile smoke verification. P10 was refined to Ready on 2026-07-15 with US-0605, US-0610, and US-0611, while D-023 through D-025 remain Pending until their named implementation gates produce evidence. Batch prediction (P11) and fairness audit (P12) remain Deferred for later rolling-wave refinements.
 
 | ID | User Story | Priority | Status | Acceptance Criteria |
 |---|---|---:|---|---|
@@ -262,9 +262,11 @@ The P8 stories -- US-0601 (calibration evaluation and selection), US-0606 (thres
 | US-0602 | As a reviewer, I want a defined explanation contract and global SHAP analysis so that the final P8 probability behavior can be audited without changing it. | P1 | Done | Validate SHAP compatibility with the pinned Python 3.12, NumPy 2.2.6, scikit-learn 1.7.1 stack and the frozen D-016 `HistGradientBoostingClassifier`; determine and document the explained output, ideally the positive-class probability served by `predict_risk_probability`; produce global importance from mean absolute SHAP values with at least a bar plot and beeswarm; record the model, output, background, analysis sample, seed, package versions, limitations, mathematical-fidelity checks, and reproduction procedure; and leave the P8 model, artifact, and served probabilities unchanged. |
 | US-0608 | As a user and reviewer, I want reproducible local explanations for the public reference profiles so that each estimate can be understood and audited. | P1 | Done | Explain all four public reference profiles with the correct positive class and exact `FEATURE_COLUMNS` order; show the base value, final served estimate, and per-feature contributions; produce waterfall plots or an evidenced equivalent local representation; translate feature names and encoded values into understandable labels; describe contributions only with wording such as "increased/decreased the model's estimate"; prohibit causal, diagnostic, or medical-recommendation claims; and verify additivity, finiteness, feature order, and fixed-seed reproducibility. |
 | US-0609 | As a non-technical user and technical reviewer, I want explanation communication at two levels so that the app stays understandable while GitHub evidence remains auditable. | P1 | Done | Provide a simple, progressive, visual Streamlit section similar to "How the model interprets this estimate" for a non-technical audience, while preserving the medical disclaimer; provide a reproducible technical report and evidence under `docs/p9-explainability/`; resolve D-022 before implementation chooses dynamic, precomputed, or hybrid local explanations; verify performance, privacy, regressions, and public deployment behavior; and never expose real dataset rows in the app or published artifacts. |
+| US-0605 | As a user, I want to compare my original model estimate with a controlled hypothetical scenario so that I can explore model sensitivity without treating it as medical advice. | P1 | Ready | Before engine or UI implementation, resolve D-023 with an explicit editable-feature whitelist based on the BRFSS field semantics and document why every other field is excluded. A scenario starts from an unchanged copy of the submitted profile, accepts only valid values for approved fields, preserves all other fields exactly, and returns the original probability, scenario probability, and signed percentage-point difference. The result is described only as a hypothetical change in model output, never as an expected medical benefit, causal effect, recommendation, or way to reduce real risk. |
+| US-0610 | As a maintainer, I want a deterministic and independently tested scenario engine so that hypothetical comparisons cannot silently change the serving contract or original input. | P1 | Ready | Implement a pure scenario-comparison path that reuses the validated P8 `predict_risk_probability` contract, never mutates its baseline input, rejects unknown, unapproved, missing, non-finite, incorrectly typed, or out-of-range changes, and preserves exact `FEATURE_COLUMNS` order. Resolve D-024 before UI integration; test that the scenario probability equals direct scoring of the exact modified profile and that the signed delta equals `scenario - original` within the predeclared numerical tolerance. Do not retrain, calibrate, explain, optimize, rank, or persist scenarios. |
+| US-0611 | As a non-technical user, I want the scenario comparison presented clearly and safely in Streamlit so that I can distinguish a model experiment from a health prediction about changing my behavior. | P1 | Ready | Resolve D-025 before integration, then provide a progressive original-versus-scenario view, explicit reset behavior, neutral treatment of positive, negative, and zero deltas, and a visible statement that the comparison is not causal, clinical, or a recommendation. Preserve the existing probability-only contract, medical disclaimer, P9 explanation, privacy boundary, reference-profile displays, and fallback behavior. Run the full and headless suites, verify unchanged official artifact hashes, deploy, and pass the mandatory healthy-path public smoke test before US-0611 or P10 is marked Done. |
 | US-0603 | As a user, I want batch CSV prediction so that multiple cases can be scored at once. | P2 | Deferred | CSV upload, validation report, and downloadable predictions are implemented. |
 | US-0604 | As a reviewer, I want a fairness audit so that subgroup performance is not ignored. | P2 | Deferred | Metrics are reported by sex, age group, and income group where applicable. |
-| US-0605 | As a user, I want to explore how selected modifiable inputs affect the model output so that I can understand model sensitivity without treating it as medical advice. | P2 | Deferred | Scenario explorer only changes approved modifiable features and clearly states that outputs are model responses, not causal health effects. |
 
 ### P8 Implementation Tasks (US-0601, US-0606, US-0607)
 
@@ -405,3 +407,82 @@ P9 explains the final probability contract selected in P8: the frozen D-016 `His
 - [x] The complete local suite and headless checks pass.
 - [x] The updated Streamlit application passes mandatory public verification after deployment.
 - [x] P9 moved to Done after implementation commit `25c4ed4`, redeployment, reboot, and successful public verification on 2026-07-14.
+
+### Candidate Tasks for P10
+
+P10 adds a constrained sensitivity explorer around the unchanged P8 probability contract. It compares the probability for the submitted profile with the probability for one hypothetical variant of that same profile. It does not estimate what would happen to a person's health after an intervention. The frozen D-016 model, schema-version-2 artifact, `calibration_method = none`, D-019 probability-only product, P9 SHAP contract, and four public reference estimates remain unchanged.
+
+#### Increment 1 -- Feature Semantics and Safety Contract (approximately 1 day)
+
+- [ ] Audit every `FEATURE_COLUMNS` field against its BRFSS meaning, encoding, valid values, reversibility, and risk of causal or prescriptive misinterpretation.
+- [ ] Evaluate `BMI`, `PhysActivity`, `Fruits`, `Veggies`, and `HvyAlcoholConsump` as the initial candidate set; candidate status does not authorize a field for the UI before D-023 is Accepted.
+- [ ] Exclude age, sex, education, and income from improvement-lever framing. Treat diagnoses, historical events, access-to-care variables, and subjective health summaries as non-editable unless D-023 records exceptional evidence and safe wording.
+- [ ] Explicitly reject `Smoker` as an improvement lever because the BRFSS field means having smoked at least 100 cigarettes over a lifetime and cannot be reversed by a present scenario choice.
+- [ ] Resolve D-023 with the approved whitelist, field labels, allowed values/ranges, excluded-field rationale, and wording constraints before implementing the scenario engine or UI.
+
+#### Increment 2 -- Deterministic Scenario Engine (approximately 1 day)
+
+- [ ] Implement a pure scenario module, expected at `src/scenarios.py`, that copies a validated baseline profile, applies only approved changes, and scores both profiles through `predict_risk_probability`.
+- [ ] Return a structured comparison containing the unchanged baseline, exact scenario profile, original probability, scenario probability, and signed percentage-point delta.
+- [ ] Reject unknown, unapproved, missing, non-finite, incorrectly typed, or out-of-range changes; preserve exact feature order and every non-edited value.
+- [ ] Resolve D-024 with the number of simultaneously editable fields, comparison/reset behavior, numerical contract, and explicit prohibition of optimization, ranked scenarios, recommended presets, or threshold labels before Streamlit integration.
+- [ ] Record the engine contract and evidence in `docs/p10-scenarios/report.md` without using test rows or regenerating an artifact.
+
+#### Increment 3 -- Streamlit Communication and Integration (approximately 1-2 days)
+
+- [ ] Resolve D-025 from a focused UX/privacy review before changing Streamlit: placement, progressive disclosure, transient state, neutral delta presentation, fallback behavior, and public wording.
+- [ ] Present the original and hypothetical probabilities side by side, identify exactly which approved inputs changed, show the signed difference in model-estimate percentage points, and provide an unambiguous reset to the submitted profile.
+- [ ] Use wording such as "the model estimate changed" and "hypothetical scenario" for positive, negative, and zero differences. Never use "improves your health", "reduces your risk", "recommended", "best", or equivalent prescriptive language.
+- [ ] Keep the existing medical disclaimer and make clear that the scenario is not a causal estimate, diagnosis, treatment effect, or forecast of what will happen if a user changes behavior.
+- [ ] Keep P9's explanation of the submitted estimate intact and separate. Do not add scenario-specific SHAP explanations in P10.
+
+#### Increment 4 -- Regression, Deployment, and Closure (approximately 1 day)
+
+- [ ] Run the complete pytest suite and Streamlit headless checks, including accepted, rejected, reset, zero-delta, positive-delta, negative-delta, and scenario-failure paths.
+- [ ] Verify that the original estimates and exact displays for the four reference profiles remain 0.3%, 60.0%, 70.0%, and 79.9% and that their P9 explanations still render.
+- [ ] Verify that `models/diabetes_risk_model.joblib` retains SHA-256 `957c14ff5a490bbc60822121a889f92ee2a6a20f797eef741a710d887ecc9216` and `models/shap_background_v1.json` retains SHA-256 `73d1ff21e3c98ee79fa7d72758517047f13e5f454d7ff95edb1ee93812cca120`; neither is regenerated.
+- [ ] Confirm Streamlit performs no fitting, calibration, artifact generation, raw-data access, global SHAP analysis, scenario persistence, or external input logging.
+- [ ] Push the reviewed implementation, reboot/redeploy the existing Streamlit application, and pass the mandatory healthy-path public smoke test before marking US-0611 or P10 Done. Invalid/error paths remain local/headless rather than deliberately breaking the public app.
+
+#### Expected Tests for P10
+
+- [ ] The baseline input is never mutated, and applying no change reproduces the original probability and a zero delta.
+- [ ] Only D-023-approved fields can change; every other feature and exact `FEATURE_COLUMNS` order are preserved.
+- [ ] Unknown, excluded, missing, non-finite, incorrectly typed, and out-of-range scenario values are rejected deterministically.
+- [ ] The scenario probability equals `predict_risk_probability` for the exact modified profile, and `delta_percentage_points = 100 * (scenario_probability - original_probability)` within an absolute `1e-12` numerical tolerance.
+- [ ] Reset reconstructs the submitted baseline exactly, including all 21 feature values.
+- [ ] Positive, negative, and zero differences use neutral model-response language and no threshold or high/low-risk category.
+- [ ] Existing reference-profile probabilities, P9 local explanations, disclaimer, artifact-error behavior, and explanation-error fallback remain unchanged.
+- [ ] Source and headless guards prohibit optimization, ranked recommendations, scenario-specific SHAP, persistence, external logging, fitting, raw-data reads, and artifact regeneration in the app.
+- [ ] No train, calibration, or test row is needed to run the scenario engine or Streamlit path; test data cannot influence D-023 through D-025 or the product wording.
+- [ ] The deployed healthy path passes a mandatory public smoke test after the implementation is pushed.
+
+#### Planned P10 Deliverables
+
+- `src/scenarios.py` with the pure validated comparison contract.
+- `tests/test_scenarios.py` plus controlled regression/headless additions for the app.
+- `docs/p10-scenarios/report.md` with the approved whitelist, excluded-field rationale, decision evidence, reproducible checks, limitations, and public-verification record.
+- Controlled `app/streamlit_app.py` changes only after D-023, D-024, and D-025 are resolved.
+- No new or regenerated model, calibrator, SHAP-background, dataset, or row-level evidence artifact.
+
+#### P10 Scope Guardrails
+
+- [ ] Do not retrain, recalibrate, retune, or replace the D-016 model, and do not regenerate either reviewed artifact.
+- [ ] Do not change the P8 probability, threshold, label, or reference-profile contract, and do not reinterpret P9 SHAP contributions as intervention effects.
+- [ ] Do not use train, calibration, or test data to operate the explorer or choose its fields, defaults, narrative, or UI after the semantic contract is fixed.
+- [ ] Do not present sensitive, contextual, historical, diagnostic, or access-to-care fields as actions a person should take.
+- [ ] Do not optimize, search, rank, prescribe, or recommend scenarios; do not create a "best" profile or claim a real-world risk reduction.
+- [ ] Do not persist or externally log submitted profiles or scenarios; widget state remains transient in the active session.
+- [ ] Keep batch prediction (P11), fairness analysis (P12), and broader P9 explanation/UX expansion outside P10.
+
+#### Definition of Done for P10
+
+- [ ] US-0605, US-0610, and US-0611 satisfy their acceptance criteria.
+- [ ] D-023, D-024, and D-025 are Accepted from recorded pre-integration evidence, not assumed during planning.
+- [ ] The approved editable-feature whitelist and all exclusions are traceable to exact BRFSS semantics and safe communication constraints.
+- [ ] The pure engine is deterministic, validated, non-mutating, and exactly consistent with `predict_risk_probability`.
+- [ ] Streamlit clearly separates the submitted estimate from one hypothetical scenario, provides reset, and uses non-causal, non-clinical, non-prescriptive wording.
+- [ ] The probability-only P8 contract, P9 explanations, medical disclaimer, four reference displays, and both reviewed artifact hashes remain unchanged.
+- [ ] The complete local suite and Streamlit headless checks pass.
+- [ ] The updated public application passes mandatory healthy-path smoke verification after deployment.
+- [ ] P10 moves from Ready to Done only after the reviewed implementation is committed, pushed, deployed, and publicly verified.
