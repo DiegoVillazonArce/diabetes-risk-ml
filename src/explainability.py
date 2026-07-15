@@ -1119,7 +1119,7 @@ def _build_report(
 
 ## Executive Summary
 
-P9 is locally implemented and validated as a read-only explanation layer over the frozen P8 probability contract. D-020 accepts direct explanation of the positive-class probability with SHAP {stack['shap']} `TreeExplainer`; D-021 accepts one 256-row train-derived aggregate background for both offline analysis and Streamlit plus a fixed 5,000-row proportionally stratified calibration sample; and D-022 accepts a hybrid delivery strategy: dynamic cached local explanations in Streamlit and precomputed aggregate/global plus synthetic-reference evidence in GitHub. The model artifact, served probabilities, probability-only product behavior, and medical disclaimer are unchanged. P9 remains Ready until commit, push, redeploy, and public smoke verification are performed externally.
+P9 is implemented, publicly verified, and closed as a read-only explanation layer over the frozen P8 probability contract. D-020 accepts direct explanation of the positive-class probability with SHAP {stack['shap']} `TreeExplainer`; D-021 accepts one 256-row train-derived aggregate background for both offline analysis and Streamlit plus a fixed 5,000-row proportionally stratified calibration sample; and D-022 accepts a hybrid delivery strategy: dynamic cached local explanations in Streamlit and precomputed aggregate/global plus synthetic-reference evidence in GitHub. The model artifact, served probabilities, probability-only product behavior, and medical disclaimer are unchanged. Implementation commit `25c4ed4` passed the mandatory public explanation and four-profile smoke verification on 2026-07-14.
 
 ## Objective and Scope
 

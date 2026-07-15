@@ -455,11 +455,11 @@ The protocol details live in `docs/ml-analysis-plan.md` ("Calibration and Thresh
 - Evaluate the CI quality-track candidate (automated pytest on pushes) during the next implementation increment.
 - Keep evaluating `skops` as a safer serialization option before final portfolio packaging, per D-010.
 
-## Next Iteration Planning: P9 SHAP Explainability
+## Iteration 9: P9 SHAP Explainability
 
 **Date:** 2026-07-13
 
-**Status:** In Progress -- local implementation and validation are complete; commit, push, redeployment, and the mandatory public smoke test remain external closure work
+**Status:** Completed -- implementation commit `25c4ed4` was pushed, deployed, rebooted, and publicly verified on 2026-07-14
 
 **Goal:** Explain globally and locally the behavior of the final P8 probability contract without modifying its predictions, while providing a simple non-technical Streamlit explanation and reproducible academic/technical evidence with no causal, diagnostic, clinical, or prescriptive claims.
 
@@ -469,16 +469,20 @@ The protocol details live in `docs/ml-analysis-plan.md` ("Calibration and Thresh
 - US-0608 -- reproducible local explanations for the four public synthetic reference profiles.
 - US-0609 -- delivery, integration, privacy, regression protection, and two-level communication.
 
-US-0602 and US-0608 are Done from reproducible local evidence. US-0609 is In Progress because its local code, privacy checks, technical evidence, regression coverage, and headless checks are complete, but commit, push, redeployment, and public verification have not occurred.
+US-0602 and US-0608 are Done from reproducible local evidence. US-0609 is also Done after its code, privacy checks, technical evidence, regression coverage, headless checks, deployment, and mandatory public verification all passed.
 
-### Planned Increments and Local Outcome
+### Increments and Outcome
 
-P9 retained the four ordered increments from refinement. Their local outcome on 2026-07-14 is:
+P9 retained the four ordered increments from refinement. Their completed outcome on 2026-07-14 is:
 
-1. **Increment 1 -- compatibility and technical contract: locally complete.** SHAP 0.52.0 was tested against the exact pinned stack and frozen `HistGradientBoostingClassifier`. Direct positive-probability `TreeExplainer` passed shape, class, order, finiteness, runtime, memory, and the unchanged `1e-4` tolerance. An explicit masker was necessary because SHAP otherwise reduced 256 background rows to 100. D-020 and D-021 were Accepted before the full analysis, and only then was `shap==0.52.0` added.
-2. **Increment 2 -- offline global analysis: locally complete.** The accepted background contains 256 deterministic train-derived aggregate centroids, each combining 693 or 694 train rows and matching no train row exactly. The fixed calibration sample contains 5,000 rows (697 positive, 4,303 negative), preserving prevalence within deterministic allocation rounding. Aggregate CSV/bar, rendered beeswarm, structured metadata, spike comparison, and the technical report were generated; no row-level global data or SHAP matrix was published.
-3. **Increment 3 -- local explanations: locally complete.** All four public synthetic profiles have reproducible contribution tables and waterfall plots. Positive class, exact feature order, finiteness, additivity, unchanged 0.3%/60.0%/70.0%/79.9% displays, and shared feature/value labels are covered by tests.
-4. **Increment 4 -- integration, regression, and deployment: local portion complete; external portion pending.** D-022 selected hybrid delivery before Streamlit integration: a cached dynamic local explanation uses the accepted safe background, while global and reference evidence remain precomputed offline. The app reads no CSV, trains no model, derives no background, and runs no global analysis. It creates a `TreeExplainer` from the aggregate asset under an artifact-hash cache key; widget values remain transient in the active session and project code writes or logs none outside that session. The disclaimer/probability-only contract and explanation-error fallback remain intact. Local full/headless verification passed. Commit, push, redeployment, and public healthy-path smoke verification remain undone.
+1. **Increment 1 -- compatibility and technical contract: complete.** SHAP 0.52.0 was tested against the exact pinned stack and frozen `HistGradientBoostingClassifier`. Direct positive-probability `TreeExplainer` passed shape, class, order, finiteness, runtime, memory, and the unchanged `1e-4` tolerance. An explicit masker was necessary because SHAP otherwise reduced 256 background rows to 100. D-020 and D-021 were Accepted before the full analysis, and only then was `shap==0.52.0` added.
+2. **Increment 2 -- offline global analysis: complete.** The accepted background contains 256 deterministic train-derived aggregate centroids, each combining 693 or 694 train rows and matching no train row exactly. The fixed calibration sample contains 5,000 rows (697 positive, 4,303 negative), preserving prevalence within deterministic allocation rounding. Aggregate CSV/bar, rendered beeswarm, structured metadata, spike comparison, and the technical report were generated; no row-level global data or SHAP matrix was published.
+3. **Increment 3 -- local explanations: complete.** All four public synthetic profiles have reproducible contribution tables and waterfall plots. Positive class, exact feature order, finiteness, additivity, unchanged 0.3%/60.0%/70.0%/79.9% displays, and shared feature/value labels are covered by tests.
+4. **Increment 4 -- integration, regression, and deployment: complete.** D-022 selected hybrid delivery before Streamlit integration: a cached dynamic local explanation uses the accepted safe background, while global and reference evidence remain precomputed offline. The app reads no CSV, trains no model, derives no background, and runs no global analysis. It creates a `TreeExplainer` from the aggregate asset under an artifact-hash cache key; widget values remain transient in the active session and project code writes or logs none outside that session. The disclaimer/probability-only contract and explanation-error fallback remain intact. Local full/headless verification passed, implementation commit `25c4ed4` was pushed, and the rebooted public deployment passed its mandatory healthy-path explanation and four-profile smoke verification.
+
+### Public Deployment Closure
+
+Implementation commit `25c4ed4` was pushed to `main` and deployed through the existing Streamlit Community Cloud application on 2026-07-14. The initial reboot logged one process-level segmentation fault after dependency installation without a Python traceback; a subsequent clean reboot was stable, and the failure did not recur during public predictions. Public verification then confirmed startup, artifact and aggregate-background loading, the complete form, the D-018-consistent 0.9% default estimate, the dynamic reference estimate, contribution chart and plain-language contribution list, the explanation details, and the medical disclaimer without triggering the fallback. All four reference profiles rendered their explanations and preserved the exact P8 displays: 0.3%, 60.0%, 70.0%, and 79.9%. Missing/corrupt-background and explainer-error paths remain covered locally/headlessly rather than by deliberately breaking the healthy public deployment. US-0609 and roadmap P9 are Done.
 
 ### Accepted Decisions
 
@@ -500,9 +504,9 @@ The full evidence and rejected alternatives are recorded in `docs/decisions.md` 
 - Keep model fitting, data download, and global SHAP computation out of the Streamlit import/serving path.
 - CI remains an optional quality-track candidate or independent increment, not part of the SHAP critical path or P9 Definition of Done.
 
-### Local Deliverables
+### Deliverables
 
-The local implementation produced:
+The implementation produced:
 
 - `src/explainability.py`.
 - `tests/test_explainability.py`.
@@ -529,7 +533,7 @@ The technical report must document the methodology, output and positive class, b
 
 ### Definition of Done
 
-P9 may move from Ready to Done only after implementation and verification demonstrate all of the following:
+P9 moved from Ready to Done after implementation and verification demonstrated all of the following:
 
 - Reproducible global and local SHAP evidence exists for the selected D-020 output contract.
 - Base values and contributions are mathematically faithful to the P8 served probability contract, or to an explicitly transformed output whose relationship to that probability is fully tested and communicated.
@@ -541,11 +545,9 @@ P9 may move from Ready to Done only after implementation and verification demons
 - The updated Streamlit application passes public verification.
 - D-020, D-021, and D-022 are resolved with recorded evidence.
 
-The local implementation satisfies the reproducibility, fidelity, privacy, wording, regression, and headless requirements. It does not satisfy the public-availability requirement because the changes are intentionally unstaged and uncommitted, no push or redeployment was performed, and no public smoke test was claimed. P9 therefore remains Ready.
+The implementation satisfies the reproducibility, fidelity, privacy, wording, regression, headless, and public-availability requirements. Commit `25c4ed4`, the stable reboot, and the successful mandatory public smoke verification complete US-0609 and P9.
 
 ### Follow-Up
 
-- Review the unstaged local P9 changes and manually exercise representative valid and error paths on localhost.
-- After review, commit and push the implementation, redeploy/reboot Streamlit, and complete the mandatory healthy-path public startup, form, explanation, disclaimer, privacy wording, and four-profile smoke checks. Missing/corrupt background and explainer error paths remain deployment-equivalent local/headless checks; the healthy public deployment must not be broken deliberately. Only then may US-0609 and P9 be closed.
-- After P9 is publicly verified and closed, refine P10 through a separate rolling-wave planning step. P10 remains Future and is not refined here.
+- Refine P10 through a separate rolling-wave planning step. P10 remains Future and is not refined here.
 - Retain CI and `skops` as independent quality/packaging candidates without adding either to P9's critical path.
