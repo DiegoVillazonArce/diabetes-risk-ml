@@ -1,4 +1,4 @@
-"""Streamlit app: single-case risk estimation with P9/P10 interpretation.
+"""Streamlit app: individual P9/P10 and in-memory P11 batch prediction.
 
 The app is a thin UI over the P6 serving contract in `src.artifacts`: it
 loads the local D-016 model artifact once per server process (cached; the
@@ -30,7 +30,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import streamlit as st
 
-from src import artifacts, explainability, scenarios
+from src import artifacts, batch, explainability, scenarios
 from src.data import FEATURE_COLUMNS, VALUE_RANGES
 from src.feature_labels import (
     AGE_GROUP_LABELS,
@@ -43,6 +43,12 @@ from src.feature_labels import (
 ORIGINAL_RESULT_STATE_KEY = "_p10_original_result"
 SCENARIO_WIDGET_GENERATION_STATE_KEY = "_p10_scenario_generation"
 SCENARIO_WIDGET_STATE_PREFIX = "_p10_scenario_widget_"
+BATCH_RESULT_STATE_KEY = "_p11_batch_result"
+BATCH_WIDGET_GENERATION_STATE_KEY = "_p11_batch_generation"
+BATCH_WIDGET_STATE_PREFIX = "_p11_batch_widget_"
+BATCH_PREVIEW_ROWS = 25
+WORKFLOW_OPTIONS = ("Individual prediction", "Batch CSV prediction")
+
 
 def medical_disclaimer(bundle: dict) -> str:
     """Medical warning whose calibration wording matches the served contract."""
@@ -272,6 +278,48 @@ def clear_original_result() -> None:
     """Invalidate the saved estimate and every scenario derived from it."""
     st.session_state.pop(ORIGINAL_RESULT_STATE_KEY, None)
     clear_scenario_widget_state()
+
+
+def clear_batch_result() -> None:
+    """Remove the current P11 result/download from active-session memory."""
+    st.session_state.pop(BATCH_RESULT_STATE_KEY, None)
+
+
+def reset_batch_workflow() -> None:
+    """Clear batch result and uploader state without touching individual state."""
+    clear_batch_result()
+    keys = tuple(st.session_state)
+    for key in keys:
+        if key.startswith(BATCH_WIDGET_STATE_PREFIX):
+            del st.session_state[key]
+    generation = int(
+        st.session_state.get(BATCH_WIDGET_GENERATION_STATE_KEY, 0)
+    )
+    st.session_state[BATCH_WIDGET_GENERATION_STATE_KEY] = generation + 1
+
+
+def save_batch_result(
+    result: batch.BatchResult,
+    result_bytes: bytes,
+    artifact_hash: str,
+    upload_hash: str,
+) -> None:
+    """Retain exactly one artifact/upload-bound result in session memory."""
+    st.session_state[BATCH_RESULT_STATE_KEY] = {
+        "result": result,
+        "result_bytes": result_bytes,
+        "artifact_hash": artifact_hash,
+        "upload_hash": upload_hash,
+    }
+
+
+def invalidate_batch_for_artifact(artifact_hash: str) -> bool:
+    """Clear a saved batch result if it belongs to another artifact hash."""
+    saved = st.session_state.get(BATCH_RESULT_STATE_KEY)
+    if saved is not None and saved.get("artifact_hash") != artifact_hash:
+        clear_batch_result()
+        return True
+    return False
 
 
 def save_original_result(
@@ -557,31 +605,8 @@ def render_input_form() -> tuple[dict, int] | None:
     return (values, exact_age) if submitted else None
 
 
-def main() -> None:
-    st.set_page_config(page_title="Diabetes Risk Estimator", page_icon="🩺")
-    st.title("Diabetes Risk Estimator")
-    st.caption(
-        "Educational MVP that estimates self-reported diabetes/prediabetes "
-        "risk with the project's selected model (D-016). Not medical advice."
-    )
-
-    try:
-        artifact_hash = explainability.artifact_sha256(
-            artifacts.DEFAULT_ARTIFACT_PATH
-        )
-        bundle = load_model_bundle(artifact_hash)
-    except (FileNotFoundError, ValueError) as error:
-        clear_original_result()
-        message = str(error)
-        if "python -m src.artifacts" not in message:
-            message += " Generate it with 'python -m src.artifacts'."
-        st.error(message)
-        st.info(
-            "Generate a valid local artifact from the project root with "
-            "`python -m src.artifacts`, then reload this page."
-        )
-        st.stop()
-
+def render_individual_workflow(bundle: dict, artifact_hash: str) -> None:
+    """Render the existing individual P8/P9/P10 path unchanged."""
     submission = render_input_form()
     prediction_failed = False
 
@@ -623,33 +648,226 @@ def main() -> None:
                 "Fill in the form and press **Estimate risk** to get an "
                 "educational risk estimate."
             )
+        return
+
+    original_profile = {
+        feature: original_result["profile"][feature]
+        for feature in FEATURE_COLUMNS
+    }
+    original_probability = float(original_result["probability"])
+    st.subheader("Estimated risk")
+    st.metric(
+        "Model-estimated probability of diabetes or prediabetes",
+        f"{original_probability:.1%}",
+    )
+    st.caption(
+        f"Age {original_result['exact_age']} was evaluated in the "
+        f"{AGE_GROUP_LABELS[original_profile['Age']]} model age group."
+    )
+    st.caption(probability_contract_caption(bundle))
+    render_local_explanation(
+        bundle,
+        original_profile,
+        original_probability,
+        artifact_hash,
+    )
+    render_scenario_explorer(
+        bundle,
+        original_profile,
+        original_probability,
+    )
+
+
+def render_batch_workflow(bundle: dict, artifact_hash: str) -> None:
+    """Render the D-028 batch upload, summary, preview, and download path."""
+    st.subheader("Batch CSV prediction")
+    st.write(
+        "Use the generated schema to validate and score up to 1,000 profiles "
+        "through the same probability contract as individual prediction."
+    )
+    st.info(
+        "Privacy: uploaded bytes, validation details, and results stay only in "
+        "this active Streamlit session. Project code does not write them to "
+        "disk, send them to analytics, or place them in a shared cache."
+    )
+    st.caption(
+        "CSV contract: UTF-8 (optional BOM), comma delimiter, at most 2 MiB, "
+        "exactly the 21 technical feature columns, and BRFSS Age group codes "
+        "1-13 rather than exact age."
+    )
+
+    template_column, guide_column = st.columns(2)
+    template_column.download_button(
+        "Download CSV template",
+        data=batch.template_csv_bytes(),
+        file_name="diabetes_batch_template.csv",
+        mime="text/csv",
+    )
+    guide_column.download_button(
+        "Download field guide",
+        data=batch.field_guide_csv_bytes(),
+        file_name="diabetes_batch_field_guide.csv",
+        mime="text/csv",
+    )
+    with st.expander("View field guide"):
+        st.dataframe(
+            batch.field_guide_dataframe(),
+            hide_index=True,
+            use_container_width=True,
+        )
+
+    generation = int(
+        st.session_state.get(BATCH_WIDGET_GENERATION_STATE_KEY, 0)
+    )
+    uploaded = st.file_uploader(
+        "Upload batch CSV",
+        type=["csv"],
+        accept_multiple_files=False,
+        key=f"{BATCH_WIDGET_STATE_PREFIX}upload_{generation}",
+        help="The engine enforces the 2 MiB and 1,000-row limits before scoring.",
+    )
+
+    saved = st.session_state.get(BATCH_RESULT_STATE_KEY)
+    upload_bytes: bytes | None = None
+    current_upload_hash: str | None = None
+    if uploaded is None:
+        if saved is not None:
+            clear_batch_result()
+            saved = None
+            st.info(
+                "The previous batch result was cleared because no upload is active."
+            )
     else:
-        original_profile = {
-            feature: original_result["profile"][feature]
-            for feature in FEATURE_COLUMNS
-        }
-        original_probability = float(original_result["probability"])
-        st.subheader("Estimated risk")
-        st.metric(
-            "Model-estimated probability of diabetes or prediabetes",
-            f"{original_probability:.1%}",
-        )
-        st.caption(
-            f"Age {original_result['exact_age']} was evaluated in the "
-            f"{AGE_GROUP_LABELS[original_profile['Age']]} model age group."
-        )
+        try:
+            upload_bytes = uploaded.getvalue()
+            current_upload_hash = batch.upload_sha256(upload_bytes)
+        except (AttributeError, TypeError, ValueError) as error:
+            clear_batch_result()
+            saved = None
+            st.error("The uploaded CSV could not be read safely in memory.")
+            with st.expander("Upload error details"):
+                st.code(str(error))
+        else:
+            st.caption(
+                f"Upload loaded in active-session memory: {len(upload_bytes):,} bytes."
+            )
+            if saved is not None and saved.get("upload_hash") != current_upload_hash:
+                clear_batch_result()
+                saved = None
+                st.info(
+                    "The upload changed, so the previous batch result was invalidated. "
+                    "Press **Process batch** for the current file."
+                )
+
+    process_column, reset_column = st.columns(2)
+    process_clicked = process_column.button(
+        "Process batch",
+        type="primary",
+        disabled=upload_bytes is None,
+    )
+    reset_column.button("Reset batch", on_click=reset_batch_workflow)
+
+    if process_clicked and upload_bytes is not None and current_upload_hash is not None:
+        clear_batch_result()
+        saved = None
+        try:
+            result = batch.process_batch(upload_bytes, bundle)
+            result_bytes = batch.result_csv_bytes(result)
+        except batch.BatchFileError as error:
+            st.error(f"CSV structure error: {error}")
+        except (ValueError, RuntimeError) as error:
+            st.error(
+                "The batch could not be processed. No previous or partial result "
+                "has been retained."
+            )
+            with st.expander("Batch processing error details"):
+                st.code(str(error))
+        else:
+            save_batch_result(
+                result,
+                result_bytes,
+                artifact_hash,
+                current_upload_hash,
+            )
+            saved = st.session_state[BATCH_RESULT_STATE_KEY]
+
+    if saved is None:
         st.caption(probability_contract_caption(bundle))
-        render_local_explanation(
-            bundle,
-            original_profile,
-            original_probability,
-            artifact_hash,
+        st.info(
+            "Upload a template-derived CSV and press **Process batch**. "
+            "Structural errors reject the file; row-value errors allow partial success."
         )
-        render_scenario_explorer(
-            bundle,
-            original_profile,
-            original_probability,
+        return
+
+    result = saved["result"]
+    total_column, valid_column, invalid_column = st.columns(3)
+    total_column.metric("Total rows", str(result.total_rows))
+    valid_column.metric("Valid rows", str(result.valid_rows))
+    invalid_column.metric("Invalid rows", str(result.invalid_rows))
+    st.caption(probability_contract_caption(bundle))
+
+    preview = result.to_dataframe().head(BATCH_PREVIEW_ROWS)
+    st.markdown("**Result preview**")
+    st.dataframe(preview, hide_index=True, use_container_width=True)
+    shown = min(result.total_rows, BATCH_PREVIEW_ROWS)
+    st.caption(
+        f"Preview shows {shown} of {result.total_rows} rows in original order. "
+        "The download contains every row and every validation error."
+    )
+    st.download_button(
+        "Download batch results",
+        data=saved["result_bytes"],
+        file_name="diabetes_batch_results.csv",
+        mime="text/csv",
+    )
+    st.warning(
+        "Batch output contains model probabilities only. Invalid rows have no "
+        "probability, and no threshold, risk category, diagnosis, explanation, "
+        "scenario, or medical recommendation is produced."
+    )
+
+
+def main() -> None:
+    st.set_page_config(page_title="Diabetes Risk Estimator", page_icon="🩺")
+    st.title("Diabetes Risk Estimator")
+    st.caption(
+        "Educational MVP that estimates self-reported diabetes/prediabetes "
+        "risk with the project's selected model (D-016). Not medical advice."
+    )
+
+    try:
+        artifact_hash = explainability.artifact_sha256(
+            artifacts.DEFAULT_ARTIFACT_PATH
         )
+        bundle = load_model_bundle(artifact_hash)
+    except (FileNotFoundError, ValueError) as error:
+        clear_original_result()
+        clear_batch_result()
+        message = str(error)
+        if "python -m src.artifacts" not in message:
+            message += " Generate it with 'python -m src.artifacts'."
+        st.error(message)
+        st.info(
+            "Generate a valid local artifact from the project root with "
+            "`python -m src.artifacts`, then reload this page."
+        )
+        st.stop()
+
+    batch_artifact_changed = invalidate_batch_for_artifact(artifact_hash)
+    if batch_artifact_changed:
+        st.info(
+            "A saved batch result was cleared because the local model artifact changed."
+        )
+
+    workflow = st.radio(
+        "Prediction workflow",
+        options=WORKFLOW_OPTIONS,
+        horizontal=True,
+    )
+    if workflow == "Individual prediction":
+        render_individual_workflow(bundle, artifact_hash)
+    else:
+        render_batch_workflow(bundle, artifact_hash)
     st.warning(medical_disclaimer(bundle))
 
 

@@ -11,14 +11,16 @@ workflow renders and produces a valid educational risk percentage from a
 temporary artifact, with clear errors for missing or corrupt artifacts.
 """
 
+import csv
 import importlib.util
 import inspect
+import io
 
 import pandas as pd
 import pytest
 import streamlit as st
 
-from src import artifacts, calibration, data, explainability, scenarios
+from src import artifacts, batch, calibration, data, explainability, scenarios
 from tests.test_modeling import make_splits
 
 APP_PATH = data.PROJECT_ROOT / "app" / "streamlit_app.py"
@@ -30,6 +32,39 @@ def import_app(name: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+class FakeUpload:
+    """Small in-memory stand-in for Streamlit's UploadedFile in headless tests."""
+
+    def __init__(self, payload: bytes):
+        self.payload = payload
+
+    def getvalue(self) -> bytes:
+        return self.payload
+
+
+def app_batch_csv(rows: list[dict[str, object]]) -> bytes:
+    stream = io.StringIO(newline="")
+    writer = csv.writer(stream, lineterminator="\n")
+    writer.writerow(data.FEATURE_COLUMNS)
+    for row in rows:
+        writer.writerow([row.get(feature, "") for feature in data.FEATURE_COLUMNS])
+    return stream.getvalue().encode("utf-8")
+
+
+def open_batch_app(monkeypatch, payload: bytes | None = None):
+    """Open the batch branch, optionally supplying in-memory uploaded bytes."""
+    from streamlit.testing.v1 import AppTest
+
+    if payload is not None:
+        upload = FakeUpload(payload)
+        monkeypatch.setattr(st, "file_uploader", lambda *args, **kwargs: upload)
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30)
+    app.run()
+    app.radio[0].set_value("Batch CSV prediction").run()
+    return app
 
 
 @pytest.fixture()
@@ -160,20 +195,49 @@ def test_app_source_never_trains_or_reloads_data():
 
 
 def test_app_source_never_runs_global_shap_or_persists_inputs_externally():
-    source = APP_PATH.read_text(encoding="utf-8")
-    for forbidden in (
-        "generate_evidence",
-        "select_global_sample",
-        "build_aggregate_background",
-        "global_importance",
-        "to_csv",
-        "write_text",
-        "to_json",
-        "sqlite",
-        "analytics",
-    ):
-        assert forbidden not in source
-    assert "session_state" in source
+    app_source = APP_PATH.read_text(encoding="utf-8")
+    batch_source = inspect.getsource(batch)
+    for source in (app_source, batch_source):
+        for forbidden in (
+            "generate_evidence(",
+            "select_global_sample(",
+            "build_aggregate_background(",
+            "global_importance(",
+            ".to_csv(",
+            ".write_text(",
+            ".write_bytes(",
+            ".to_json(",
+            "sqlite3.",
+            "analytics.",
+            "logging.",
+            "requests.",
+            "urllib.",
+        ):
+            assert forbidden not in source
+    assert "session_state" in app_source
+    assert "cache_data" not in app_source
+    assert "session_state" not in batch_source
+
+
+def test_batch_path_allows_only_in_memory_uploaded_csv_not_project_csv():
+    app_source = APP_PATH.read_text(encoding="utf-8")
+    batch_source = inspect.getsource(batch)
+    assert "file_uploader" in app_source
+    assert "parse_batch_csv" in batch_source
+    for source in (app_source, batch_source):
+        for forbidden in (
+            "raw_data_path",
+            "diabetes_binary_health_indicators_brfss2015.csv",
+            "prepare_data(",
+            "load_raw_data(",
+            "pd.read_csv(",
+            "pandas.read_csv(",
+            "train_test_split(",
+            ".fit(",
+            "build_artifact_bundle(",
+            "create_default_artifact(",
+        ):
+            assert forbidden not in source.lower()
 
 
 def test_explainer_cache_is_keyed_by_artifact_hash(monkeypatch):
@@ -693,3 +757,294 @@ def test_app_shows_clear_error_when_artifact_is_corrupt(tmp_path, monkeypatch):
     assert len(app.error) == 1
     assert "python -m src.artifacts" in app.error[0].value
     assert len(app.metric) == 0
+
+
+# ---------------------------------------------------------------------------
+# P11 batch workflow: separation, state, failures, preview, and download
+# ---------------------------------------------------------------------------
+
+
+def test_workflow_navigation_separates_individual_and_batch(tmp_artifact, monkeypatch):
+    from streamlit.testing.v1 import AppTest
+
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    assert app.radio[0].options == [
+        "Individual prediction",
+        "Batch CSV prediction",
+    ]
+    assert app.radio[0].value == "Individual prediction"
+    assert not any(
+        subheader.value == "Batch CSV prediction" for subheader in app.subheader
+    )
+
+    app.radio[0].set_value("Batch CSV prediction").run()
+    assert not app.exception
+    assert any(
+        subheader.value == "Batch CSV prediction" for subheader in app.subheader
+    )
+    assert not app.checkbox
+    assert not any(
+        subheader.value == "How the model interprets this estimate"
+        for subheader in app.subheader
+    )
+    assert not any(
+        subheader.value == "Model scenario explorer" for subheader in app.subheader
+    )
+
+
+def test_batch_branch_exposes_template_guide_csv_uploader_and_explicit_actions(
+    tmp_artifact, monkeypatch
+):
+    app = open_batch_app(monkeypatch)
+
+    assert not app.exception
+    downloads = app.get("download_button")
+    assert [item.label for item in downloads] == [
+        "Download CSV template",
+        "Download field guide",
+    ]
+    uploader = app.get("file_uploader")
+    assert len(uploader) == 1
+    assert uploader[0].label == "Upload batch CSV"
+    assert list(uploader[0].proto.type) == [".csv"]
+    assert (
+        uploader[0].proto.max_upload_size_mb * 1024 * 1024
+        == batch.MAX_UPLOAD_BYTES
+    )
+    assert [(button.label, button.disabled) for button in app.button] == [
+        ("Process batch", True),
+        ("Reset batch", False),
+    ]
+    assert len(app.dataframe) == 1
+    assert len(app.dataframe[0].value) == len(data.FEATURE_COLUMNS)
+
+
+def test_batch_valid_upload_summary_preview_and_download(tmp_artifact, monkeypatch):
+    app = open_batch_app(monkeypatch, batch.template_csv_bytes())
+    app.button[0].click().run()
+
+    assert not app.exception
+    metrics = {metric.label: metric.value for metric in app.metric}
+    assert metrics == {"Total rows": "1", "Valid rows": "1", "Invalid rows": "0"}
+    assert len(app.dataframe) == 2
+    preview = app.dataframe[-1].value
+    assert len(preview) == 1
+    assert list(preview.columns) == list(batch.RESULT_COLUMNS)
+    downloads = app.get("download_button")
+    assert [item.label for item in downloads] == [
+        "Download CSV template",
+        "Download field guide",
+        "Download batch results",
+    ]
+    saved = app.session_state["_p11_batch_result"]
+    exported = saved["result_bytes"].decode("utf-8")
+    assert exported.startswith("row_number,HighBP")
+    assert saved["result"].valid_rows == 1
+
+
+def test_batch_mixed_validity_and_preview_are_bounded(tmp_artifact, monkeypatch):
+    rows = []
+    for index in range(30):
+        row = artifacts.example_input()
+        if index in {5, 29}:
+            row["BMI"] = "invalid"
+        rows.append(row)
+    app = open_batch_app(monkeypatch, app_batch_csv(rows))
+    app.button[0].click().run()
+
+    assert not app.exception
+    metrics = {metric.label: metric.value for metric in app.metric}
+    assert metrics == {"Total rows": "30", "Valid rows": "28", "Invalid rows": "2"}
+    preview = app.dataframe[-1].value
+    assert len(preview) == 25
+    assert preview.iloc[5]["validation_status"] == "invalid"
+    saved = app.session_state["_p11_batch_result"]
+    exported = list(
+        csv.DictReader(io.StringIO(saved["result_bytes"].decode("utf-8")))
+    )
+    assert len(exported) == 30
+    assert exported[29]["model_probability"] == ""
+    assert any(
+        "Preview shows 25 of 30 rows" in caption.value for caption in app.caption
+    )
+
+
+def test_batch_reset_clears_result_and_download(tmp_artifact, monkeypatch):
+    app = open_batch_app(monkeypatch, batch.template_csv_bytes())
+    app.button[0].click().run()
+    assert app.metric
+
+    app.button[1].click().run()
+    assert not app.exception
+    assert not app.metric
+    assert "_p11_batch_result" not in app.session_state
+    assert [item.label for item in app.get("download_button")] == [
+        "Download CSV template",
+        "Download field guide",
+    ]
+
+
+def test_batch_replacing_upload_invalidates_stale_result(tmp_artifact, monkeypatch):
+    from streamlit.testing.v1 import AppTest
+
+    holder = {"payload": batch.template_csv_bytes()}
+    monkeypatch.setattr(
+        st,
+        "file_uploader",
+        lambda *args, **kwargs: FakeUpload(holder["payload"]),
+    )
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    app.radio[0].set_value("Batch CSV prediction").run()
+    app.button[0].click().run()
+    assert app.metric
+
+    changed = artifacts.example_input()
+    changed["BMI"] = "bad"
+    holder["payload"] = app_batch_csv([changed])
+    app.run()
+
+    assert not app.exception
+    assert not app.metric
+    assert "_p11_batch_result" not in app.session_state
+    assert any("upload changed" in info.value.lower() for info in app.info)
+
+
+def test_batch_artifact_hash_change_invalidates_saved_result(
+    tmp_artifact, monkeypatch
+):
+    app = open_batch_app(monkeypatch, batch.template_csv_bytes())
+    app.button[0].click().run()
+    assert app.metric
+
+    monkeypatch.setattr(
+        explainability,
+        "artifact_sha256",
+        lambda path: "e" * 64,
+    )
+    app.run()
+
+    assert not app.exception
+    assert not app.metric
+    assert "_p11_batch_result" not in app.session_state
+    assert any("batch result was cleared" in info.value.lower() for info in app.info)
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        (b"x" * (batch.MAX_UPLOAD_BYTES + 1), "exceeds"),
+        (
+            (",".join(data.FEATURE_COLUMNS) + '\n"unterminated').encode(),
+            "malformed",
+        ),
+    ],
+    ids=("oversized", "malformed"),
+)
+def test_batch_oversized_and_malformed_errors_are_controlled(
+    tmp_artifact, monkeypatch, payload, expected
+):
+    app = open_batch_app(monkeypatch, payload)
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert not app.metric
+    assert any(expected in error.value.lower() for error in app.error)
+    assert "_p11_batch_result" not in app.session_state
+
+
+def test_batch_wide_header_error_rendered_by_streamlit_is_bounded(
+    tmp_artifact, monkeypatch
+):
+    payload = (",".join(f"column_{index}" for index in range(10_000)) + "\n").encode(
+        "utf-8"
+    )
+    app = open_batch_app(monkeypatch, payload)
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert len(app.error) == 1
+    rendered = app.error[0].value
+    assert "10000 columns" in rendered
+    assert "column_9999" not in rendered
+    assert len(rendered) <= (
+        len("CSV structure error: ") + batch.MAX_FILE_ERROR_MESSAGE_CHARS
+    )
+    assert "_p11_batch_result" not in app.session_state
+
+
+def test_batch_engine_failure_clears_any_old_result(tmp_artifact, monkeypatch):
+    app = open_batch_app(monkeypatch, batch.template_csv_bytes())
+    app.button[0].click().run()
+    assert app.metric
+
+    def fail_engine(*args, **kwargs):
+        raise RuntimeError("controlled engine failure")
+
+    monkeypatch.setattr(batch, "process_batch", fail_engine)
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert not app.metric
+    assert "_p11_batch_result" not in app.session_state
+    assert any("could not be processed" in error.value.lower() for error in app.error)
+
+
+def test_batch_export_failure_clears_any_old_result(tmp_artifact, monkeypatch):
+    app = open_batch_app(monkeypatch, batch.template_csv_bytes())
+    app.button[0].click().run()
+    assert app.metric
+
+    def fail_export(*args, **kwargs):
+        raise ValueError("controlled export failure")
+
+    monkeypatch.setattr(batch, "result_csv_bytes", fail_export)
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert not app.metric
+    assert "_p11_batch_result" not in app.session_state
+    assert any("could not be processed" in error.value.lower() for error in app.error)
+
+
+def test_batch_never_calls_shap_or_scenarios(tmp_artifact, monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("batch must not call P9 or P10")
+
+    monkeypatch.setattr(explainability, "explain_local_values", forbidden)
+    monkeypatch.setattr(scenarios, "compare_scenario", forbidden)
+    app = open_batch_app(monkeypatch, batch.template_csv_bytes())
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert {metric.label for metric in app.metric} == {
+        "Total rows",
+        "Valid rows",
+        "Invalid rows",
+    }
+    assert not any(
+        subheader.value == "How the model interprets this estimate"
+        for subheader in app.subheader
+    )
+    assert not any(
+        subheader.value == "Model scenario explorer" for subheader in app.subheader
+    )
+
+
+def test_batch_keeps_d019_wording_privacy_and_medical_disclaimer(
+    tmp_artifact, monkeypatch
+):
+    app = open_batch_app(monkeypatch, batch.template_csv_bytes())
+    app.button[0].click().run()
+
+    rendered = " ".join(
+        element.value
+        for element in [*app.markdown, *app.text, *app.caption, *app.info, *app.warning]
+    ).lower()
+    assert "active streamlit session" in rendered
+    assert "no custom decision threshold" in rendered
+    assert "probabilities only" in rendered
+    assert "medical disclaimer" in rendered
+    assert "not a diagnosis" in rendered
+    assert "risk category" in rendered

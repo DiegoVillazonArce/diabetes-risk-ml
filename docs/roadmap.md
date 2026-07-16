@@ -60,6 +60,8 @@ Advanced post-MVP features include calibration depth, SHAP polish, model scenari
 | P12 | Fairness Audit | Evaluate model behavior across demographic and socioeconomic subgroups. | No | Future |
 | P13 | Product Polish and Portfolio Packaging | Improve UX, architecture page, demo assets, and final CV narrative. | No | Future |
 
+P11 has a complete local implementation ready for review as of 2026-07-16. D-026 through D-028 are Accepted, US-0603 and US-0612 are Done, and US-0613 is In Progress. The phase intentionally remains **Ready**, not Done, because the reviewed implementation has not been committed/pushed/deployed and the public valid-plus-mixed CSV verification has not run. The current public application remains P10-only.
+
 ## Quality Tracks
 
 These tracks should be refined as the project moves through the roadmap:

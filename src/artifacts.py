@@ -670,19 +670,54 @@ def input_to_dataframe(values: dict) -> pd.DataFrame:
     return pd.DataFrame(row, columns=FEATURE_COLUMNS).astype("uint8")
 
 
+def select_probability_scorer(bundle: dict):
+    """Validate one bundle and return its D-018-selected probability scorer.
+
+    This is the single model/calibrator selection boundary shared by
+    individual and batch serving. Callers that score several rows can retain
+    the returned scorer after this one validation instead of re-validating the
+    artifact per row.
+    """
+    validate_artifact_bundle(bundle)
+    return bundle["model"] if bundle["calibrator"] is None else bundle["calibrator"]
+
+
+def predict_probability_frame(scorer, rows: pd.DataFrame) -> np.ndarray:
+    """Score a non-empty canonical frame and enforce probability integrity."""
+    if not isinstance(rows, pd.DataFrame):
+        raise ValueError(
+            "Probability input must be a pandas DataFrame in canonical feature order."
+        )
+    if list(rows.columns) != list(FEATURE_COLUMNS):
+        raise ValueError(
+            "Probability input columns do not match FEATURE_COLUMNS in exact order."
+        )
+    if rows.empty:
+        raise ValueError("Probability input must contain at least one row.")
+
+    probabilities = np.asarray(predict_positive_proba(scorer, rows), dtype=float)
+    if probabilities.ndim != 1 or len(probabilities) != len(rows):
+        raise ValueError(
+            "Probability scorer returned an unexpected result shape: "
+            f"{probabilities.shape!r} for {len(rows)} input rows."
+        )
+    invalid = (~np.isfinite(probabilities)) | (probabilities < 0.0) | (
+        probabilities > 1.0
+    )
+    if invalid.any():
+        first = int(np.flatnonzero(invalid)[0])
+        raise ValueError(
+            "Model returned an invalid probability at row position "
+            f"{first}: {probabilities[first]!r}."
+        )
+    return probabilities
+
+
 def predict_risk_probability(bundle: dict, values: dict) -> float:
     """Score one case through the validated P8 probability contract."""
-    validate_artifact_bundle(bundle)
+    scorer = select_probability_scorer(bundle)
     row = input_to_dataframe(values)
-    scorer = (
-        bundle["model"]
-        if bundle["calibrator"] is None
-        else bundle["calibrator"]
-    )
-    probability = float(predict_positive_proba(scorer, row)[0])
-    if not math.isfinite(probability) or not 0.0 <= probability <= 1.0:
-        raise ValueError(f"Model returned an invalid probability: {probability!r}.")
-    return probability
+    return float(predict_probability_frame(scorer, row)[0])
 
 
 def probability_is_calibrated(bundle: dict) -> bool:

@@ -360,7 +360,7 @@ The technical evidence is recorded in `docs/p10-scenarios/report.md`: semantic a
 
 P11 extends the unchanged P8 serving contract from one validated mapping to a bounded CSV batch. It does not train or compare models, revisit calibration, introduce a threshold/label, calculate SHAP or scenarios per row, or consume the project raw/training, calibration, or test data at runtime. The only new data source is a user-uploaded CSV held in memory for the active session; the current public application remains P10-only until a reviewed P11 implementation is pushed and deployed.
 
-The implementation must follow this order:
+The implementation followed this order:
 
 1. Inventory and reuse the exact executable schema, range, label, artifact, and probability sources of truth. Do not copy the 21-field contract into Streamlit or a second handwritten schema.
 2. Spike bounded byte parsing and distinguish file-level structural failures from row-level validation failures without scoring or UI integration.
@@ -369,35 +369,35 @@ The implementation must follow this order:
 5. Implement and test a pure in-memory batch module that canonicalizes valid inputs, preserves order/duplicates, validates every cell without silent repair, scores valid rows vectorially through the P8 scorer, and creates template/result bytes deterministically.
 6. Resolve D-028 from UX, privacy, failure, state, and performance evidence before modifying Streamlit. Fix accepted file/resource and latency/memory limits before the final UI run.
 7. Integrate a separate batch workflow with template/field-guide download, explicit processing, valid/invalid summary, bounded preview, safe errors, reset/replacement, and deterministic result download. Parsing and serialization stay outside `app/streamlit_app.py`.
-8. Run focused, complete, headless, performance, hash, reference, and local-browser checks; then review, commit, push, deploy, and complete mandatory public valid-plus-mixed workflow verification before moving P11 to Done.
+8. Run focused, complete, headless, performance, hash, reference, and local-browser checks. Review, commit, push, deployment, and mandatory public valid-plus-mixed workflow verification remain external closure gates before P11 can move to Done.
 
-Planning candidates, not accepted decisions, are:
+The initially documented candidates were evaluated and accepted by D-026 through D-028 on 2026-07-16:
 
-- UTF-8 or UTF-8-with-BOM comma-delimited input, a single header, at most 2 MiB and 1,000 data rows.
+- Strict UTF-8 comma-delimited input with an optional leading BOM, a single header, at most 2 MiB and 1,000 logical data rows. Output is UTF-8 without BOM and uses LF line endings.
 - Exactly the 21 `FEATURE_COLUMNS` names in any input order, canonicalized internally; no target, spreadsheet index, identifier, free-text, or passthrough column.
 - Numeric integer-like values governed by `VALUE_RANGES`; `Age` uses the BRFSS group code `1`-`13`, not the single-case UI's exact-age convenience input.
-- A code-generated header/template plus field guide derived from the same feature/range/label sources as the app.
+- A code-generated template with one synthetic `artifacts.example_input()` row plus a field guide derived from the same feature/range/label sources as the app; neither uses a real dataset row.
 - Whole-file rejection for structural errors; partial success for a structurally valid file, scoring valid rows and reporting complete ordered errors plus a blank probability for invalid rows.
 - One deterministic output ordered by input `row_number`, canonical feature columns, `validation_status`, `validation_errors`, and `model_probability`; no percentage-derived category or decision field.
-- A warm processing bound of 2 seconds and 50 MiB incremental Python memory for the accepted maximum valid batch, measured against the official artifact before Streamlit integration.
+- A warm processing bound of 2 seconds and 50 MiB incremental Python memory for the simultaneous accepted maximum of exactly 2 MiB and 1,000 valid rows. A review correction replaced the earlier compact 1,000-row fixture with the byte-and-row extreme; 30 official-artifact warm runs measured 0.1179472-second median, 0.1294039-second p95, 0.1627905-second maximum, and 12.2736 MiB peak incremental Python memory, so neither bound was changed.
 
-D-026 through D-028 may replace a candidate only from recorded pre-integration evidence. A limit or contract must not be relaxed after the final result is observed merely to make the implementation pass.
+D-026 and D-027 were resolved from parser/validation/export spikes before the definitive engine contract; D-028 was resolved from UX/privacy/failure/performance evidence before Streamlit integration. No candidate limit was relaxed after observing the result. Exact evidence is in `docs/decisions.md` and `docs/p11-batch/report.md`.
 
 ### Validation and Scoring Contract
 
-The batch boundary must reject empty, malformed, unsupported-encoding/delimiter, headerless, duplicate-header, missing-column, unexpected-column, target-bearing, and over-limit files before model scoring. A structurally valid frame keeps every row, row position, and exact duplicate. Per-row validation reports missing cells, non-numeric/text/boolean values, non-finite values, fractions, and out-of-range values in stable `FEATURE_COLUMNS` order; it never fills, clips, rounds, coerces, deduplicates, or drops a row silently.
+The batch boundary rejects empty, malformed, unsupported-encoding/delimiter, NUL-bearing, headerless, excessive/duplicate-header, missing-column, unexpected-column, target/index/identifier-bearing, wrong-width, and over-limit files before model scoring. Invalid headers above the 64-column inspection cap fail count-only; all structural messages have a 1,000-character backstop and user-controlled header diagnostics show at most five bounded previews. A structurally valid frame keeps every logical row, row position, blank record, and exact duplicate. Per-row validation reports missing cells, non-numeric/text/boolean values, non-finite values, fractions, and out-of-range values in stable `FEATURE_COLUMNS` order; it never fills, clips, rounds, coerces, deduplicates, or drops a row silently.
 
 The artifact is validated once for a batch. Valid rows are converted to canonical integer feature order and passed in one vectorized call to the D-018-selected scorer (`model` for the current `calibration_method = none`, otherwise the artifact's accepted calibrator). Each resulting positive-class probability must be finite, within `[0, 1]`, and equal the existing `predict_risk_probability` result for the same row within absolute tolerance `1e-12`. Invalid rows never reach the scorer and have no probability. The four public reference profiles must reproduce their unchanged probabilities/displays both individually and in one batch.
 
 ### Privacy, Communication, and Delivery
 
-Uploaded bytes, parsed inputs, validation results, and downloadable bytes remain transient within the active Streamlit session. Project code writes none of them to disk, databases, object stores, analytics, logs, or cross-session caches. If results must survive a widget rerun, D-028 must bind them to the exact artifact SHA-256 and upload SHA-256, replace them on a new upload, and clear them after parse/scoring failure or artifact change. Preview rows are bounded and are never described as project data.
+Uploaded bytes, parsed inputs, validation results, and downloadable bytes remain transient within the active Streamlit session. Project code writes none of them to disk, databases, object stores, analytics, logs, or cross-session caches. Retained results are bound to the exact artifact SHA-256 and upload SHA-256 and clear after upload removal/replacement, reset, parse/scoring/export failure, or artifact change. The preview is limited to 25 rows and is never described as project data.
 
 The batch UI explains that it processes the user's uploaded file in memory while never reading the project's training CSV. It retains the D-018 contract caption, D-019 probability-only behavior, and medical disclaimer. It does not provide high/low-risk labels, screening decisions, recommendations, aggregate distribution claims, per-row SHAP explanations, or P10 scenarios. A structural failure shows no result; mixed row validity shows honest counts and row errors; an internal scoring/export failure cannot leave an earlier result presented as current.
 
-The existing app source guards currently prohibit literal CSV parsing/serialization in `app/streamlit_app.py`. P11 should keep the UI thin and put reviewed byte parsing and export in `src/batch.py`, then strengthen guards to prohibit project-raw-data access and all disk/external persistence across the complete batch path. Moving a prohibited operation out of the app file does not make it acceptable.
+The strengthened source guards distinguish reviewed in-memory uploaded-CSV parsing from prohibited project-data access: parsing and serialization live in `src/batch.py`, while `app/streamlit_app.py` stays a thin controller. Guards cover both modules and prohibit raw-project paths, writes, fitting/calibration, artifact generation, remote fetches, analytics/external logging, and cross-session user-data caching.
 
-The technical evidence belongs under `docs/p11-batch/` and must record the accepted D-026 through D-028 contracts, exact template/input/output schemas, parser behavior, row-error taxonomy, numerical-equivalence evidence, limits, performance/memory measurements, privacy/failure review, tests, artifact hashes, public verification, limitations, and reproduction commands.
+The technical evidence is recorded in `docs/p11-batch/report.md`: accepted D-026 through D-028 contracts, exact template/input/output schemas, parser behavior, row-error taxonomy, numerical equivalence, limits, performance/memory, privacy/failure review, tests, artifact hashes, limitations, and reproduction commands. The report explicitly leaves deployment and public verification open; the local implementation does not make P11 Done and the current public application remains P10-only.
 
 ## Fairness Analysis Plan
 
