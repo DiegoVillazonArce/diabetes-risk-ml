@@ -637,3 +637,73 @@ All Definition of Done conditions were satisfied on 2026-07-15. P10 moved to Don
 
 - Apply rolling-wave refinement to P11 before implementation; P11-P13 remain Future at P10 closure.
 - Retain CI, `skops`, and broader explanatory/visual polish as separate quality or portfolio candidates rather than expanding P10.
+
+## Next Iteration Planning: P11 Batch Prediction Workflow
+
+**Date:** 2026-07-15
+
+**Status:** Ready
+
+**Goal:** Add a bounded, privacy-safe CSV workflow that validates and scores multiple profiles through the unchanged P8 probability contract, reports row problems honestly, and returns deterministic downloadable results without introducing thresholds, explanations, scenarios, persistence, or project-data access.
+
+### Stories
+
+- **US-0603 -- template, upload, and downloadable results (P1, Ready):** a user can obtain the accepted template/field guide, upload a bounded CSV, see valid/invalid counts and safe errors, and download deterministic probability-only results without guessing the model schema.
+- **US-0612 -- pure batch validation and scoring engine (P1, Ready):** a Streamlit-independent in-memory module enforces file and row contracts, preserves order/duplicates, scores only valid rows vectorially through the validated P8 artifact, and proves equality with individual serving within absolute tolerance `1e-12`.
+- **US-0613 -- safe Streamlit delivery and public verification (P1, Ready):** the separate batch workflow provides bounded preview/download and controlled stale/error behavior while preserving privacy, D-019 wording, the disclaimer, single-case P9/P10 boundaries, performance limits, and mandatory public verification.
+
+### Proposed Increments
+
+1. **Increment 1 -- input, validation, and resource contract (~1 day).** Inventory reusable schema/range/label/serving sources; spike uploaded-byte parsing; distinguish structural from row errors; evaluate the 2 MiB/1,000-row and exact-column candidates; resolve D-026; then resolve D-027 with partial-success and deterministic export rules before dependent implementation.
+2. **Increment 2 -- pure batch engine (~1-2 days).** Implement `src/batch.py` with bounded in-memory parse, canonicalization, complete row validation, vectorized P8 scoring, template/field-guide generation, combined output, and deterministic UTF-8 export. Add focused numerical, failure, reproducibility, privacy, and prohibited-path tests.
+3. **Increment 3 -- Streamlit delivery (~1-2 days).** Resolve D-028 from UX/privacy/failure/performance evidence, including accepted warm latency/memory limits, before integration. Add a separate template/upload/process/summary/preview/download workflow; bind retained results to artifact/upload hashes; keep parsing/export outside the UI module and P9/P10 single-case only.
+4. **Increment 4 -- regression, deployment, and closure (~1 day).** Run the full verification battery and local browser review, confirm both artifact hashes and all four reference outputs, commit/push/deploy, pass mandatory public small-valid plus mixed-validity upload/download verification, record `docs/p11-batch/report.md`, and only then move P11 to Done.
+
+### Pending Decisions
+
+- **D-026 -- upload/template contract:** candidate UTF-8/UTF-8-BOM comma CSV; exactly 21 feature names in any order and canonical output order; numeric codes with BRFSS `Age` groups; no target/index/identifier/free text; generated field guide; initial 2 MiB and 1,000-row limits. Resolve before parser/template implementation; no candidate is pre-accepted.
+- **D-027 -- validation/scoring/export policy:** candidate whole-file rejection for structural failures and row-level partial success otherwise; complete ordered validation errors; invalid rows receive no probability; deterministic combined output; individual-versus-vectorized tolerance `1e-12`. Resolve before Streamlit integration; no policy is pre-accepted.
+- **D-028 -- Streamlit/privacy/performance delivery:** candidate active-session-only bytes/results, artifact-plus-upload hash binding, bounded preview, explicit processing/reset, no external logging/persistence, and proposed warm maximum of 2 seconds/50 MiB at the accepted maximum batch. Resolve before changing Streamlit; no route or limit is pre-accepted.
+
+### Guardrails
+
+- Keep the frozen D-016 model, schema-version-2 artifact, `calibration_method = none`, D-019 probability-only behavior, P9 explanation contract, P10 scenario contract, four reference estimates, and both artifact hashes unchanged.
+- Parse only bounded user-uploaded CSV bytes in memory. Never load the project raw/training CSV, split data, fit, calibrate, generate artifacts, or fetch a remote input in the P11 runtime path.
+- Do not silently coerce, fill, clip, round, drop, deduplicate, or reorder rows. Canonicalize columns only after structural validation and preserve original row order/duplicates.
+- Do not add thresholds, high/low-risk labels, diagnoses, recommendations, aggregate health claims, per-row SHAP, or batch scenarios.
+- Do not persist or externally log uploads/results, and do not place user data in a cross-session cache. Any active-session result must be invalidated after upload replacement, failure, or artifact change.
+- Keep P12 fairness, P13 polish, CI, `skops`, authentication, user accounts, general storage, and analytics outside P11.
+
+### Planned Deliverables
+
+- `src/batch.py` for pure in-memory parsing, validation, vectorized scoring, template/field-guide generation, and deterministic export.
+- `tests/test_batch.py` plus controlled app/headless and reference-profile regression additions.
+- `docs/p11-batch/report.md` containing accepted contracts, exact schemas, limits, error taxonomy, numerical/performance/privacy evidence, tests, hashes, limitations, and public closure evidence.
+- Controlled `app/streamlit_app.py` changes after D-028 only; no new or regenerated model/background/data artifact.
+
+### Expected Tests
+
+- Template/field-guide coverage and drift guards against `FEATURE_COLUMNS`, `VALUE_RANGES`, and shared labels.
+- Structural rejection for empty/malformed/unsupported, duplicate/missing/extra/target/index/identifier columns, and byte/row limits.
+- Stable complete row errors for missing, text, boolean, non-finite, fractional, and out-of-range values without coercion.
+- Partial success scores only valid rows, preserves row positions/duplicates, leaves invalid probability blank, and reports exact totals.
+- Vectorized scores match individual `predict_risk_probability` within `1e-12`, including all four public reference profiles.
+- Deterministic output columns, encoding, line endings, float/error serialization, and repeated-run bytes.
+- Privacy/stale-state/prohibited-path guards plus headless template, upload, preview, download, failure, wording, and disclaimer coverage.
+- Accepted maximum-batch performance, complete suite, artifact hashes, local visual review, and mandatory public valid-plus-mixed workflow verification.
+
+### Definition of Done
+
+- US-0603, US-0612, and US-0613 satisfy their acceptance criteria.
+- D-026, D-027, and D-028 are Accepted from ordered evidence before dependent implementation.
+- Input/template, structural/row validation, partial-success, scoring, export, resource, privacy, failure, and UI contracts are explicit and reproducible.
+- Valid outputs are faithful to the unchanged P8 probability contract; invalid rows never receive probabilities.
+- No uploaded data/result is persisted or externally logged, and public communication stays educational, probability-only, and non-diagnostic.
+- P9/P10 behavior, medical disclaimer, reference profiles, and both reviewed artifacts remain unchanged.
+- Focused, full-suite, headless, performance, local visual, and mandatory public valid-plus-mixed upload/download checks pass.
+- Only after review, commit, push, redeployment, and public verification does roadmap P11 move from Ready to Done.
+
+### Follow-Up
+
+- Apply rolling-wave refinement to P12 only after P11 closes; P12-P13 remain Future during P11.
+- Retain CI, `skops`, broader UX polish, identifiers/passthrough metadata, additional file formats, accounts, and storage as independent later candidates rather than expanding the P11 critical path.
