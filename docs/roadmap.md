@@ -57,10 +57,10 @@ Advanced post-MVP features include calibration depth, SHAP polish, model scenari
 | P9 | Explainability with SHAP | Explain the final P8 probability contract globally and locally with SHAP, preserving its predictions and providing both an accessible Streamlit explanation and reproducible technical evidence, with non-causal, non-medical wording. | No | Done |
 | P10 | Model Scenario Explorer | Compare the original model estimate with one controlled hypothetical scenario over an explicitly approved feature whitelist, using non-causal, non-medical language and preserving the P8/P9 contracts. | No | Done |
 | P11 | Batch Prediction Workflow | Add a privacy-safe in-memory CSV template, deterministic file/row validation, probability-only batch scoring, and downloadable results without changing the P8-P10 contracts. | No | Done |
-| P12 | Fairness Audit | Evaluate model behavior across demographic and socioeconomic subgroups. | No | Future |
+| P12 | Fairness Audit | Audit the frozen P8 probability contract across predeclared sex, age, income, and supported intersectional cohorts with uncertainty-aware probability, ranking, calibration, and frozen-threshold metrics; communicate limitations without changing the model or claiming fairness. | No | Ready |
 | P13 | Product Polish and Portfolio Packaging | Improve UX, architecture page, demo assets, and final CV narrative. | No | Future |
 
-P11 is complete as of 2026-07-16. D-026 through D-028 are Accepted, US-0603, US-0612, and US-0613 are Done, implementation commit `246d5ff` was pushed and deployed, and the public valid-plus-mixed CSV workflow passed mandatory verification including the safe result download. P12-P13 remain Future.
+P11 is complete as of 2026-07-16. D-026 through D-028 are Accepted, US-0603, US-0612, and US-0613 are Done, implementation commit `246d5ff` was pushed and deployed, and the public valid-plus-mixed CSV workflow passed mandatory verification including the safe result download. P12 was refined to Ready on 2026-07-16 with US-0604, US-0614, and US-0615 Ready and D-029 through D-031 Pending; P13 remains Future.
 
 ## Quality Tracks
 
@@ -70,7 +70,7 @@ These tracks should be refined as the project moves through the roadmap:
 - **Data acquisition:** document manual Kaggle download instructions first; consider an optional Kaggle API script later because automated download requires user credentials.
 - **Model artifacts:** use a clear serialization policy before deployment; `joblib` is the practical MVP default, while safer formats such as `skops` may be evaluated before final packaging.
 - **Testing:** begin with pytest coverage for data validation, split reproducibility, pipeline prediction behavior, and artifact loading; add app smoke tests after the Streamlit MVP exists.
-- **Continuous integration:** not yet implemented; retain it as an optional quality-track candidate or a dedicated independent increment. Running pytest automatically on pushes could protect the artifact-contract and split-leakage guards, but CI was not part of P9's SHAP critical path or a prerequisite for its completion.
+- **Continuous integration:** not yet implemented; retain it as an optional quality-track candidate or a dedicated independent increment. Running pytest automatically on pushes could protect artifact, split-leakage, and future audit-regression guards, but CI remains outside the P12 fairness-audit critical path and is not a prerequisite for its completion.
 
 ## Definition of Done
 

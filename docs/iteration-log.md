@@ -696,3 +696,77 @@ All Definition of Done conditions were satisfied on 2026-07-16.
 
 - Apply rolling-wave refinement to P12 before implementation; P12-P13 remain Future at P11 closure.
 - Retain broader formats, identifiers, storage, accounts, CI, `skops`, and UX polish as separate candidates rather than expanding P11.
+
+## Next Iteration Planning: P12 Fairness Audit
+
+**Date:** 2026-07-16
+
+**Status:** Ready
+
+**Goal:** Audit the unchanged P8 positive-class probability contract across predeclared demographic and socioeconomic cohorts with reproducible uncertainty-aware evidence, then communicate differences and dataset limitations without retraining, changing product behavior, or claiming that one metric proves fairness.
+
+### Planning Evidence
+
+- P11 is Done and the deployed individual/batch application continues serving the frozen schema-version-2 artifact under D-016, D-018 `none`, and D-019 probability-only behavior.
+- The P3 calibration split contains 25,368 rows and is authorized only for P12 support planning. Candidate `Sex`, four-band `Age`, eight-code `Income`, and `Sex x Age` cells each have at least 1,011 rows and 190 positives; no subgroup performance metric was needed to establish feasibility. These counts were computed locally via `prepare_data()` and cohort grouping (not estimated) and will be versioned as `docs/p12-fairness/calibration_support.csv`, the committed evidence gate for accepting D-029.
+- The official audit runs on the test split, which holds 50,736 rows (20% of the 253,680-row dataset, exactly twice calibration's 25,368). Feasibility argued on the smaller calibration split is therefore a conservative signal, but the accepted support floor is still re-checked mechanically on each test cohort at audit time.
+- Raw BRFSS age codes have sparse positive counts in the youngest cells, so D-029 must decide a semantic aggregation before official results rather than merge groups afterward.
+- The official test split has already participated in P5 model selection and the frozen P8 evaluation. P12 may perform a newly predeclared descriptive audit on it, but must not describe it as pristine, use results to select the protocol, or change any model/product decision.
+
+### Ready Stories
+
+- **US-0604 -- predeclared subgroup audit (P1, Ready):** freeze cohorts and support behavior, then report complete aggregate evidence for every eligible `Sex`, `Age`, `Income`, and supported intersectional group.
+- **US-0614 -- deterministic metrics and uncertainty engine (P1, Ready):** build a pure, tested implementation of probability, ranking, calibration, D-019 scenario, bootstrap, and group-minus-whole-cohort metrics over the unchanged served probabilities.
+- **US-0615 -- responsible publication (P1, Ready):** publish reproducible technical evidence and a plain-language limitations summary without causal, clinical, discriminatory, or blanket fair/unfair claims.
+
+### Four Planned Increments
+
+1. **Cohort, metric, and publication contracts (approximately 1 day):** audit feature semantics; generate calibration-only support evidence; resolve D-029, D-030, and D-031 before any official P12 performance result.
+2. **Pure audit engine and synthetic tests (approximately 1-2 days):** implement deterministic cohort assignment, metrics, common-bin reliability, support behavior, bootstrap intervals, and D-019 scenario analysis in `src/fairness.py` with hand-checkable fixtures.
+3. **Official audit and evidence package (approximately 1-2 days):** score the unchanged test split after all decisions are frozen; generate all predeclared aggregate CSVs/plots and the reproducible technical report without publishing rows.
+4. **Communication, regression, and closure (approximately 1 day):** add the accessible README summary, run the focused/full verification battery and hash/reference regressions, review all interpretations, and complete UI/deployment checks only if D-031 explicitly authorizes an app change.
+
+### Pending Decisions
+
+- **D-029 -- cohort and support contract:** evaluate the candidate binary `Sex`, four age bands (`18-49`, `50-64`, `65-74`, `75+`), eight original income groups, `Sex x Age`, and full-metric floor of 500 rows/100 positives/100 negatives. Unsupported groups remain visible with support/prevalence only.
+- **D-030 -- metric and uncertainty contract:** evaluate support/prevalence, mean estimate, Brier, log loss, ROC-AUC, PR-AUC, signed calibration gap, common-bin reliability, all four frozen D-019 scenario metrics, and 5,000 whole-split fixed-seed bootstrap resamples with percentile 95% intervals and `group - whole cohort` gaps; the resample count must pass a calibration-split runtime benchmark before D-030 is accepted.
+- **D-031 -- publication and response contract:** evaluate report plus README as the default delivery, mandatory publication of every predeclared eligible result, no individual Streamlit fairness judgment, and mitigation only as later work.
+
+All three decisions remain Pending. They must be resolved from semantics, calibration support, synthetic metric checks, reproducibility, privacy, and communication review before official P12 test results are inspected; no candidate may be relaxed, regrouped, or suppressed afterward because of an observed result.
+
+### Guardrails
+
+- Keep the frozen model, schema-version-2 artifact, `calibration_method = none`, D-019 probability-only app, P9/P10/P11 behavior, both official artifact hashes, and four reference displays unchanged.
+- Do not retrain, reweight, recalibrate, regenerate artifacts, compare a model, select a threshold, create group-specific serving, or implement mitigation.
+- Do not use test to choose cohorts, support floors, metrics, bins, bootstrap configuration, publication inclusion, narrative emphasis, or product response. Deterministic reruns may reproduce only the frozen official audit.
+- Publish aggregate evidence only. No real row, target vector, per-row probability, split index, SHAP vector, user upload, or small-cell drill-down may leave the offline analysis.
+- Do not use SHAP as fairness evidence or turn P10 model sensitivity into an intervention/fairness claim.
+- Do not infer causes, discrimination, clinical validity, demographic parity, equalized odds, or universal fairness. State that this dataset omits relevant identities and uses historical self-reported labels.
+- Keep P13 polish, CI, `skops`, authentication, accounts, persistence, analytics, and any mitigation project outside P12.
+
+### Deliverables
+
+- `src/fairness.py` and `tests/test_fairness.py`.
+- `docs/p12-fairness/report.md` with accepted decisions, protocol, aggregate results, uncertainty, limitations, versions, hashes, and exact reproduction instructions.
+- Deterministic aggregate CSVs for support, probability/ranking/calibration metrics, group-minus-whole-cohort gaps, reliability data, and D-019 scenario metrics.
+- Accessible offline metric-interval and calibration plots containing no individual record.
+- A concise README summary; controlled Streamlit changes only if D-031 explicitly accepts them.
+
+### Expected Verification
+
+- Cohorts are exhaustive, mutually exclusive, correctly mapped, deterministic, and independent of model results.
+- Support floors and unavailable states behave consistently for low-support and one-class synthetic fixtures.
+- All metric formulas, confusion counts, gap direction, reliability bins, and bootstrap intervals match hand-checked fixtures and deterministic regeneration expectations.
+- The official audit consumes only the intended test rows after protocol freeze; train/calibration poisoning cannot alter its results or configuration.
+- No fitting, calibration, threshold selection, artifact generation, Streamlit import, real-row publication, or unauthorized write path exists.
+- Both artifact hashes and all four reference probabilities/displays remain exact; focused and full tests, dependency, compile, diff, and privacy checks pass.
+- If Streamlit stays unchanged, deployment verification is recorded as not applicable. Any accepted app change instead passes headless, localhost, redeployment, and public smoke verification before closure.
+
+### Definition of Done
+
+P12 can move from Ready to Done only when D-029 through D-031 are Accepted in the required order; US-0604, US-0614, and US-0615 satisfy their acceptance criteria; every predeclared cohort has transparent support output and every eligible group has complete reproducible metrics/uncertainty; all published evidence is aggregate; interpretations include the historical, self-reported-label, base-rate, binary-`Sex`, ordinal-group, and missing-demographic limitations; the frozen serving and artifact contracts remain unchanged; and every applicable verification gate passes. P13 remains Future.
+
+### Follow-Up
+
+- Refine P13 through a separate rolling-wave planning step only after P12 evidence and closure are complete.
+- Treat any fairness mitigation, additional dataset/identity coverage, CI, `skops`, or product-facing audit visualization as separately scoped work rather than expanding P12 during implementation.

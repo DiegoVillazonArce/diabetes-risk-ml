@@ -401,20 +401,55 @@ The technical evidence is recorded in `docs/p11-batch/report.md`: accepted D-026
 
 ## Fairness Analysis Plan
 
-Evaluate key metrics by subgroup where sample sizes are adequate:
+P12 is a reproducible offline audit of the unchanged schema-version-2 probability contract selected in P8. It does not retrain or compare models, refit calibration, choose a threshold, change Streamlit behavior, or implement mitigation. Its purpose is to measure and communicate subgroup model behavior with uncertainty, not to certify the model as fair or infer why a difference exists.
 
-- `Sex`.
-- Age groups.
-- Income groups.
+The audit follows this order:
 
-Potential metrics:
+1. Record the frozen D-016 model, D-018 `calibration_method = none`, D-019 probability-only policy and four documentation scenarios, P3 split contract, feature order, package versions, and both official artifact hashes.
+2. Audit the source semantics and limitations of `Sex`, `Age`, and `Income`. Treat the binary `Sex` codes and ordinal age/income groups only as the limited fields supplied by this processed BRFSS dataset, not as complete protected-identity coverage.
+3. Use calibration only for support planning, never for P12 subgroup-performance claims. Produce counts for the two `Sex` codes; candidate age bands `18-49` (codes `1`-`6), `50-64` (`7`-`9), `65-74` (`10`-`11`), and `75+` (`12`-`13`); all eight `Income` codes; and the candidate `Sex x Age` intersection.
+4. Resolve D-029 from semantics and the versioned calibration-only support table (`docs/p12-fairness/calibration_support.csv`), which must be committed as evidence before acceptance. Freeze cohort membership, display labels, intersectional scope, and the candidate full-metric floor of at least 500 rows, 100 positives, and 100 negatives. Unsupported groups remain visible with support/prevalence and explicit unavailable metrics.
+5. Resolve D-030 on synthetic fixtures before official P12 test scoring. Freeze formulas, common reliability bins, D-019 scenario metrics, gap direction, unavailable behavior, deterministic ordering, and the candidate uncertainty procedure of 5,000 ordinary whole-audit-split bootstrap resamples with seed 42 and percentile 95% intervals.
+6. Resolve D-031 before official results. Freeze an all-predeclared-results publication rule and whether delivery remains technical-report plus README only or includes a controlled Streamlit change. The default candidate is report-only; any app change creates headless, local-browser, deployment, and public-smoke requirements.
+7. Implement and test a Streamlit-independent `src/fairness.py` engine using synthetic hand-checkable fixtures before it sees official audit probabilities. Reuse the existing split, artifact, scorer, feature, threshold, and seed sources of truth.
+8. After D-029 through D-031 are Accepted, score the unchanged P3 test split through the validated P8 positive-class scorer and record one official P12 descriptive audit. Test was already used in P5 and P8, so P12 must not call it pristine or once-only; later executions may reproduce evidence but cannot change the frozen protocol or any project contract.
+9. Calculate every predeclared single-axis and intersectional aggregate, mechanically apply support behavior, and publish every eligible result regardless of direction. Publish no real feature row, per-row target/probability, split index, SHAP vector, or small-cell drill-down.
+10. Generate deterministic aggregate CSVs and accessible plots, then write `docs/p12-fairness/report.md` with formulas, cohort semantics, support, estimates, uncertainty, versions, hashes, reproduction instructions, and complete limitations.
+11. Interpret differences alongside prevalence, sample size, confidence intervals, survey/label limitations, and missing demographic dimensions. Do not infer causality, discrimination, clinical validity, equalized odds, demographic parity, or universal fairness.
+12. Run focused and complete regression, determinism, privacy, dependency, compile, whitespace, artifact-hash, and four-profile checks. Close P12 without a deployment gate when Streamlit is unchanged; otherwise complete the D-031-required public verification first.
 
-- Recall.
-- False positive rate.
-- Precision.
-- Calibration by group where practical.
+### Predeclared Cohort Candidates
 
-The purpose is to audit and communicate disparities, not to claim the model is fair.
+- **`Sex`:** retain codes `0` and `1` with the dataset's documented labels. Explain that this historical processed field is binary and does not represent all sex characteristics or gender identities.
+- **`Age`:** aggregate the 13 five-year/open-ended BRFSS codes into `18-49`, `50-64`, `65-74`, and `75+`. The calibration-only check supports these bands while avoiding result-driven merging of young raw-code cells with very few positives.
+- **`Income`:** retain codes `1` through `8` and their existing ranges. Treat them as ordinal household-income categories, not exact income or socioeconomic status.
+- **Intersection:** audit `Sex x Age` exactly as frozen by D-029. Additional intersections are not added after official results; future work may evaluate them under a new support/privacy review.
+
+Calibration contains 25,368 rows and is used only to validate feasibility; it is not the audited split. Under the candidates above, each single-axis or intersection cell has at least 1,011 rows and at least 190 positives. Because the official audit runs on the larger test split -- 50,736 rows, 20% of the 253,680-row dataset and exactly twice calibration's 25,368 -- these calibration counts are a deliberately conservative feasibility signal: a cohort that clears the floor on calibration is very likely to clear it on the larger test split. They do not, however, exempt the support check. The accepted D-029 floor is re-evaluated mechanically on each actual test cohort at audit time, and any test group below it still receives transparent counts and prevalence. The proposed full-metric floor is a project reporting guardrail fixed before P12 performance results, not a statistical or regulatory fairness standard.
+
+### Metric and Uncertainty Candidates
+
+For the complete audit population and every supported group, report:
+
+- row, positive, and negative counts plus observed prevalence;
+- mean served positive-class probability;
+- Brier score and log loss for probability quality;
+- ROC-AUC and PR-AUC for within-group ranking where both classes exist;
+- signed calibration gap, defined as mean probability minus observed prevalence;
+- reliability data on common fixed probability bins, with empty bins represented explicitly; ECE is excluded from the official metric set because Brier score, log loss, the signed calibration gap, and the reliability diagrams already cover calibration without adding ECE's arbitrary bin dependence;
+- recall, precision, false-positive rate, false-positive count, and false-negative count at each of the four D-019 scenarios (`0.50`, `0.25`, `0.29`, and `0.15`).
+
+D-019 remains binding: these are documentation scenarios, not validated clinical cutoffs or served decisions. P12 cannot select a global or group-specific threshold, label a person high/low risk, or interpret an error-rate comparison as a recommendation.
+
+The D-030 candidate uses 5,000 ordinary nonparametric resamples of the complete official audit split with replacement and project seed 42. Before D-030 is accepted, this candidate count must pass a runtime benchmark on the calibration split; the benchmark tests whether 5,000 can stabilize the 2.5%/97.5% percentile tails for smaller cohorts without material recompute cost. Each resample recomputes the whole-cohort and subgroup metric so `group - whole cohort` gaps retain their dependence; percentile 95% intervals are reported in a fixed metric/group order. The engine must expose unsupported/degenerate metrics explicitly. Intervals are uncertainty descriptions, not multiple-comparison-adjusted hypothesis tests, fairness tolerances, or certification.
+
+### Communication and Limitations
+
+The default D-031 candidate keeps P12 population aggregates out of the individual and batch prediction interfaces. GitHub receives the complete academic/technical report, aggregate CSVs, and plots; README receives a concise plain-language summary and report link. Every predeclared eligible result is published, not only favorable findings.
+
+Interpretation must state that BRFSS 2015 is historical self-reported survey data; `Diabetes_binary` can reflect diagnosis access and reporting; group prevalence affects precision, PR-AUC, and threshold-conditioned errors; the processed dataset provides only binary `Sex`, ordinal `Age`/`Income`, and no race/ethnicity field; and subgroup averages cannot determine whether an individual prediction is fair. Differences prove neither causal mechanisms nor discrimination, while overlapping or small differences do not prove fairness.
+
+P12 produces no mitigation, reweighting, retraining, calibration, per-group model, group-specific threshold, new artifact, SHAP-based fairness claim, or product decision. Any such response requires a separately planned phase after the complete audit is published. P13 product polish, CI, `skops`, authentication, persistence, and analytics remain outside P12.
 
 ## Testing Plan
 
