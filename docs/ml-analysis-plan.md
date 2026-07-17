@@ -358,7 +358,7 @@ The technical evidence is recorded in `docs/p10-scenarios/report.md`: semantic a
 
 ## Batch Prediction Plan
 
-P11 extends the unchanged P8 serving contract from one validated mapping to a bounded CSV batch. It does not train or compare models, revisit calibration, introduce a threshold/label, calculate SHAP or scenarios per row, or consume the project raw/training, calibration, or test data at runtime. The only new data source is a user-uploaded CSV held in memory for the active session; the current public application remains P10-only until a reviewed P11 implementation is pushed and deployed.
+P11 extends the unchanged P8 serving contract from one validated mapping to a bounded CSV batch. It does not train or compare models, revisit calibration, introduce a threshold/label, calculate SHAP or scenarios per row, or consume the project raw/training, calibration, or test data at runtime. The only new data source is a user-uploaded CSV held in memory for the active session. Implementation commit `246d5ff` was pushed and the deployed workflow passed mandatory valid-plus-mixed public verification on 2026-07-16.
 
 The implementation followed this order:
 
@@ -369,7 +369,7 @@ The implementation followed this order:
 5. Implement and test a pure in-memory batch module that canonicalizes valid inputs, preserves order/duplicates, validates every cell without silent repair, scores valid rows vectorially through the P8 scorer, and creates template/result bytes deterministically.
 6. Resolve D-028 from UX, privacy, failure, state, and performance evidence before modifying Streamlit. Fix accepted file/resource and latency/memory limits before the final UI run.
 7. Integrate a separate batch workflow with template/field-guide download, explicit processing, valid/invalid summary, bounded preview, safe errors, reset/replacement, and deterministic result download. Parsing and serialization stay outside `app/streamlit_app.py`.
-8. Run focused, complete, headless, performance, hash, reference, and local-browser checks. Review, commit, push, deployment, and mandatory public valid-plus-mixed workflow verification remain external closure gates before P11 can move to Done.
+8. Run focused, complete, headless, performance, hash, reference, and local-browser checks, then review, commit, push, deploy, and complete mandatory public valid-plus-mixed workflow verification before moving P11 to Done. All gates passed on 2026-07-16.
 
 The initially documented candidates were evaluated and accepted by D-026 through D-028 on 2026-07-16:
 
@@ -397,7 +397,7 @@ The batch UI explains that it processes the user's uploaded file in memory while
 
 The strengthened source guards distinguish reviewed in-memory uploaded-CSV parsing from prohibited project-data access: parsing and serialization live in `src/batch.py`, while `app/streamlit_app.py` stays a thin controller. Guards cover both modules and prohibit raw-project paths, writes, fitting/calibration, artifact generation, remote fetches, analytics/external logging, and cross-session user-data caching.
 
-The technical evidence is recorded in `docs/p11-batch/report.md`: accepted D-026 through D-028 contracts, exact template/input/output schemas, parser behavior, row-error taxonomy, numerical equivalence, limits, performance/memory, privacy/failure review, tests, artifact hashes, limitations, and reproduction commands. The report explicitly leaves deployment and public verification open; the local implementation does not make P11 Done and the current public application remains P10-only.
+The technical evidence is recorded in `docs/p11-batch/report.md`: accepted D-026 through D-028 contracts, exact template/input/output schemas, parser behavior, row-error taxonomy, numerical equivalence, limits, performance/memory, privacy/failure review, tests, artifact hashes, limitations, reproduction commands, and public closure evidence. P11 moved to Done only after implementation commit `246d5ff` was pushed, deployed, and the valid-plus-mixed workflow and downloads passed public verification on 2026-07-16.
 
 ## Fairness Analysis Plan
 

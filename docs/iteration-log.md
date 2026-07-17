@@ -642,7 +642,7 @@ All Definition of Done conditions were satisfied on 2026-07-15. P10 moved to Don
 
 **Date:** 2026-07-15 to 2026-07-16
 
-**Status:** In Progress -- local implementation is ready for review; commit, push, deployment, and public verification remain open.
+**Status:** Completed
 
 **Goal:** Add a bounded, privacy-safe CSV workflow that validates and scores multiple profiles through the unchanged P8 probability contract, reports row problems honestly, and returns deterministic downloadable results without thresholds, explanations, scenarios, persistence, or project-data access.
 
@@ -650,14 +650,14 @@ All Definition of Done conditions were satisfied on 2026-07-15. P10 moved to Don
 
 - **US-0603 -- template, upload, and downloadable results (P1, Done):** the generated template and field guide, bounded upload, summary, preview, and deterministic result download are implemented and headlessly tested locally.
 - **US-0612 -- pure batch validation and scoring engine (P1, Done):** `src/batch.py` enforces the accepted in-memory file/row contracts, preserves order and duplicates, scores only valid rows in one vectorized operation, and matches individual P8 serving within `1e-12`.
-- **US-0613 -- safe Streamlit delivery and public verification (P1, In Progress):** the separate local workflow, transient hash-bound state, failure handling, privacy wording, P9/P10 separation, and performance checks are complete; deployment and mandatory public valid-plus-mixed verification are not.
+- **US-0613 -- safe Streamlit delivery and public verification (P1, Done):** the separate workflow, transient hash-bound state, failure handling, privacy wording, P9/P10 separation, and performance checks are complete; implementation commit `246d5ff` was pushed and the deployed valid-plus-mixed workflow passed mandatory public verification on 2026-07-16.
 
 ### Increments
 
 1. **Increment 1 -- contracts and decisions: completed locally.** A reproducible `csv.reader(..., strict=True)` spike evaluated rather than assumed UTF-8/BOM, comma, malformed quotes, duplicate headers, NUL/UTF-16 behavior, blank logical records, exact columns, resource limits, and BRFSS `Age` codes. D-026 and D-027 were accepted before the definitive parser/export contract.
 2. **Increment 2 -- pure batch engine: completed locally.** `src/batch.py` implements byte-first limits, strict structural validation, complete row errors, partial success, one scorer selection and vectorized call, template/guide/result generation, and deterministic injection-safe export. `tests/test_batch.py` provides focused coverage.
 3. **Increment 3 -- Streamlit delivery: completed locally.** D-028 was accepted before UI integration from UX, privacy, failure, state, and official-artifact performance evidence. The app has separate individual/batch workflows, explicit processing/reset, 25-row preview, downloads, controlled failures, and artifact/upload hash invalidation; P9/P10 remain individual-only.
-4. **Increment 4 -- regression and external closure: in progress.** The focused and 382-test full suites, dependency/compile/diff checks, hashes, corrected exact-bound performance measurement, bounded-error regressions, and rendered localhost review are complete and recorded in `docs/p11-batch/report.md`. Review, commit, push, deployment, and public workflow verification intentionally remain outside this local handoff.
+4. **Increment 4 -- regression and external closure: completed.** The focused and 382-test full suites, dependency/compile/diff checks, hashes, corrected exact-bound performance measurement, bounded-error regressions, and rendered localhost review are recorded in `docs/p11-batch/report.md`. Implementation commit `246d5ff` was reviewed, pushed, deployed, and publicly verified with valid and mixed-validity template-derived files, including safe download inspection, on 2026-07-16.
 
 ### Resolved Decisions
 
@@ -683,14 +683,16 @@ The ordered evidence and exact contracts are recorded in `docs/decisions.md` and
 - Add no threshold, high/low label, diagnosis, recommendation, population inference, per-row SHAP, or batch scenario.
 - Keep P12 fairness, P13 polish, CI, `skops`, authentication, accounts, storage, and analytics outside P11.
 
-### Definition of Done Status
+### Definition of Done
 
-- D-026, D-027, and D-028 are Accepted; US-0603 and US-0612 are Done locally.
+- D-026, D-027, and D-028 are Accepted; US-0603, US-0612, and US-0613 are Done.
 - The executable input, validation, scoring, export, privacy, failure, and UI contracts are complete and reproducible.
-- US-0613 remains In Progress because the reviewed changes have not been committed, pushed, deployed, or publicly verified.
-- P11 therefore remains **Ready**, not Done. The public app still contains P8-P10 only; P12-P13 remain Future.
+- The deployed valid and mixed-validity workflows passed mandatory public verification, including the validation summary and safe result download.
+- P11 moved from **Ready** to **Done** after implementation commit `246d5ff` was pushed, deployed, and publicly verified on 2026-07-16; P12-P13 remain Future.
+
+All Definition of Done conditions were satisfied on 2026-07-16.
 
 ### Follow-Up
 
-- Review the unstaged local changes, then separately authorize commit/push/deployment and run the mandatory public small-valid plus mixed-validity upload/download verification.
-- Apply rolling-wave refinement to P12 only after P11 closes; retain broader formats, identifiers, storage, accounts, CI, `skops`, and UX polish as separate candidates.
+- Apply rolling-wave refinement to P12 before implementation; P12-P13 remain Future at P11 closure.
+- Retain broader formats, identifiers, storage, accounts, CI, `skops`, and UX polish as separate candidates rather than expanding P11.

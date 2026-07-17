@@ -56,11 +56,11 @@ Advanced post-MVP features include calibration depth, SHAP polish, model scenari
 | P8 | Probability Calibration and Threshold Analysis | Improve probability honesty and explain decision threshold trade-offs. | No | Done |
 | P9 | Explainability with SHAP | Explain the final P8 probability contract globally and locally with SHAP, preserving its predictions and providing both an accessible Streamlit explanation and reproducible technical evidence, with non-causal, non-medical wording. | No | Done |
 | P10 | Model Scenario Explorer | Compare the original model estimate with one controlled hypothetical scenario over an explicitly approved feature whitelist, using non-causal, non-medical language and preserving the P8/P9 contracts. | No | Done |
-| P11 | Batch Prediction Workflow | Add a privacy-safe in-memory CSV template, deterministic file/row validation, probability-only batch scoring, and downloadable results without changing the P8-P10 contracts. | No | Ready |
+| P11 | Batch Prediction Workflow | Add a privacy-safe in-memory CSV template, deterministic file/row validation, probability-only batch scoring, and downloadable results without changing the P8-P10 contracts. | No | Done |
 | P12 | Fairness Audit | Evaluate model behavior across demographic and socioeconomic subgroups. | No | Future |
 | P13 | Product Polish and Portfolio Packaging | Improve UX, architecture page, demo assets, and final CV narrative. | No | Future |
 
-P11 has a complete local implementation ready for review as of 2026-07-16. D-026 through D-028 are Accepted, US-0603 and US-0612 are Done, and US-0613 is In Progress. The phase intentionally remains **Ready**, not Done, because the reviewed implementation has not been committed/pushed/deployed and the public valid-plus-mixed CSV verification has not run. The current public application remains P10-only.
+P11 is complete as of 2026-07-16. D-026 through D-028 are Accepted, US-0603, US-0612, and US-0613 are Done, implementation commit `246d5ff` was pushed and deployed, and the public valid-plus-mixed CSV workflow passed mandatory verification including the safe result download. P12-P13 remain Future.
 
 ## Quality Tracks
 

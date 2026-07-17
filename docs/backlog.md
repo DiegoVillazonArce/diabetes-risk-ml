@@ -252,7 +252,7 @@ P6 provides the planning evidence for this refinement: the validated single-bund
 
 ## Epic E6: Post-MVP Enhancements
 
-The P8 stories -- US-0601 (calibration evaluation and selection), US-0606 (threshold analysis and trade-offs), and US-0607 (schema-version-2 artifact and app integration) -- were refined to Ready on 2026-07-11, implemented on 2026-07-12/13, and closed on 2026-07-13 after implementation commit `5798a0e` was pushed and the Streamlit deployment passed its public smoke verification. D-018 and D-019 are Accepted, and all three P8 stories are Done. The leakage-safe protocol lives in `docs/ml-analysis-plan.md`, evidence in `docs/p8-calibration/report.md`, and execution history in `docs/iteration-log.md`. P9 was implemented and closed on 2026-07-14: D-020, D-021, and D-022 are Accepted; US-0602, US-0608, and US-0609 are Done. P10 was implemented and closed on 2026-07-15: D-023, D-024, and D-025 are Accepted; US-0605, US-0610, and US-0611 are Done. P11 remains Ready with a complete local implementation ready for review: D-026, D-027, and D-028 are Accepted; US-0603 and US-0612 are Done; and US-0613 is In Progress because reviewed commit/push/deployment and mandatory public valid-plus-mixed verification remain incomplete. The public application is still P10-only. Fairness audit (P12) remains Deferred for a later rolling-wave refinement.
+The P8 stories -- US-0601 (calibration evaluation and selection), US-0606 (threshold analysis and trade-offs), and US-0607 (schema-version-2 artifact and app integration) -- were refined to Ready on 2026-07-11, implemented on 2026-07-12/13, and closed on 2026-07-13 after implementation commit `5798a0e` was pushed and the Streamlit deployment passed its public smoke verification. D-018 and D-019 are Accepted, and all three P8 stories are Done. The leakage-safe protocol lives in `docs/ml-analysis-plan.md`, evidence in `docs/p8-calibration/report.md`, and execution history in `docs/iteration-log.md`. P9 was implemented and closed on 2026-07-14: D-020, D-021, and D-022 are Accepted; US-0602, US-0608, and US-0609 are Done. P10 was implemented and closed on 2026-07-15: D-023, D-024, and D-025 are Accepted; US-0605, US-0610, and US-0611 are Done. P11 was implemented and closed on 2026-07-16: D-026, D-027, and D-028 are Accepted; US-0603, US-0612, and US-0613 are Done; implementation commit `246d5ff` was pushed; and the deployed Streamlit batch workflow passed mandatory valid-plus-mixed public verification including the safe result download. Fairness audit (P12) remains Deferred for a later rolling-wave refinement.
 
 | ID | User Story | Priority | Status | Acceptance Criteria |
 |---|---|---:|---|---|
@@ -267,7 +267,7 @@ The P8 stories -- US-0601 (calibration evaluation and selection), US-0606 (thres
 | US-0611 | As a non-technical user, I want the scenario comparison presented clearly and safely in Streamlit so that I can distinguish a model experiment from a health prediction about changing my behavior. | P1 | Done | D-025 was resolved before integration. The app provides the progressive original-versus-scenario view, explicit reset, neutral positive/negative/zero treatment, effective changes, non-causal/non-medical statement, and controlled scenario-only fallback while preserving P8, P9, the disclaimer, privacy boundary, and reference displays. Implementation commit `fb50ed9` was pushed and mandatory public frontend verification passed on 2026-07-15. |
 | US-0603 | As a user, I want a documented CSV template and downloadable batch results so that I can score multiple cases without guessing the model schema. | P1 | Done | D-026 is resolved before publishing the template. Streamlit offers a code-generated template and concise field guide derived from `FEATURE_COLUMNS`, `VALUE_RANGES`, and shared labels; accepts only the frozen encoding/delimiter/size/row contract; reports file-level structural failures clearly; summarizes valid and invalid rows without exposing thresholds or risk categories; and downloads deterministic results under the D-027 schema. Uploaded data and output remain in memory and are never persisted or externally logged. |
 | US-0612 | As a maintainer, I want a pure validated batch-scoring engine so that CSV processing cannot bypass the P8 artifact and input contracts. | P1 | Done | A Streamlit-independent module parses bounded uploaded bytes, rejects malformed or structurally ambiguous files, validates every row against the exact 21-feature contract without silent coercion, preserves input order and duplicates, and implements the D-027 file-level/row-level policy. Only valid rows are scored through the validated D-018-selected positive-class probability contract; each output equals individual `predict_risk_probability` scoring within absolute tolerance `1e-12`; invalid rows have no probability; and export is deterministic and in memory. No raw project data, training, calibration, threshold, label, SHAP, scenario, artifact generation, persistence, or external logging path exists. |
-| US-0613 | As a non-technical user, I want a safe batch workflow in Streamlit so that I can understand validation problems and download probabilities without confusing them with diagnoses. | P1 | In Progress | D-028 is resolved from UX/privacy/failure/performance evidence before integration. The app separates single-case and batch workflows, explains the template and privacy boundary, provides bounded preview/summary/download behavior, preserves D-019 probability-only wording and the medical disclaimer, and handles empty, malformed, oversized, mixed-validity, scoring, and stale artifact/upload states without showing prior results as current. P9 explanations and P10 scenarios remain single-case only. The complete suite, headless tests, artifact/reference regressions, deployment, and mandatory public valid-plus-mixed workflow verification pass before Done. |
+| US-0613 | As a non-technical user, I want a safe batch workflow in Streamlit so that I can understand validation problems and download probabilities without confusing them with diagnoses. | P1 | Done | D-028 was resolved from UX/privacy/failure/performance evidence before integration. The app separates single-case and batch workflows, explains the template and privacy boundary, provides bounded preview/summary/download behavior, preserves D-019 probability-only wording and the medical disclaimer, and handles empty, malformed, oversized, mixed-validity, scoring, and stale artifact/upload states without showing prior results as current. P9 explanations and P10 scenarios remain single-case only. Implementation commit `246d5ff` was pushed and the deployed valid-plus-mixed workflow, validation summary, and safe result download passed mandatory public verification on 2026-07-16. |
 | US-0604 | As a reviewer, I want a fairness audit so that subgroup performance is not ignored. | P2 | Deferred | Metrics are reported by sex, age group, and income group where applicable. |
 
 ### P8 Implementation Tasks (US-0601, US-0606, US-0607)
@@ -489,7 +489,7 @@ P10 is complete. It adds a constrained sensitivity explorer around the unchanged
 - [x] The updated public application passes mandatory healthy-path smoke verification after deployment.
 - [x] P10 moved from Ready to Done after implementation commit `fb50ed9` was pushed, deployed, and publicly verified on 2026-07-15.
 
-### Candidate Tasks for P11 (US-0603, US-0612, US-0613)
+### Iteration 11 -- P11 Batch Prediction Workflow
 
 P11 is a delivery extension over the unchanged schema-version-2 P8 probability contract. It does not create a second model, calibrator, decision layer, explanation contract, or scenario engine. The implemented app and strengthened guards prohibit access to the project training CSV and disk/external persistence while allowing only bounded user-uploaded CSV bytes in memory. The pure batch boundary reuses the executable schema/range/label sources and the shared P8 scorer selection without looping through UI code or duplicating feature rules.
 
@@ -523,8 +523,8 @@ The initial candidates were evaluated rather than assumed and are now the Accept
 - [x] Run focused batch tests, app/headless tests, the complete suite, dependency validation, and whitespace checks. Headless coverage exercises valid, invalid, mixed, duplicate, maximum-size, reset/replacement, and download cases; the real localhost browser review covers the initial batch layout, controls, wording, and visible 2 MiB transport limit.
 - [x] Confirm the four reference profiles produce unchanged probabilities/displays when scored individually and as one batch, and verify both reviewed artifact SHA-256 values remain unchanged.
 - [x] Update source guards so they continue to prohibit the project training CSV and disk/external persistence while allowing only the reviewed in-memory uploaded-CSV helper. Do not weaken guards merely by moving prohibited operations to another module.
-- [ ] Review, commit, push, deploy/reboot the existing Streamlit application, and pass mandatory public verification with a small valid template-derived file and a mixed-validity file whose safe validation report/download are confirmed. Internal, oversized, corrupt-artifact, and forced-scoring failures remain local/headless.
-- [x] Record local implementation, contract decisions, performance/privacy evidence, exact tests, artifact hashes, visual review, limitations, and the explicit uncompleted public boundary in `docs/p11-batch/report.md`; move P11 to Done only after external closure evidence exists.
+- [x] Review, commit, and push implementation commit `246d5ff`; deploy/reboot the existing Streamlit application; and pass mandatory public verification with a small valid template-derived file and a mixed-validity file whose safe validation report/download are confirmed. Completed 2026-07-16; internal, oversized, corrupt-artifact, and forced-scoring failures remain local/headless.
+- [x] Record implementation, contract decisions, performance/privacy evidence, exact tests, artifact hashes, visual review, limitations, and public closure evidence in `docs/p11-batch/report.md`; P11 moved to Done only after external closure evidence existed.
 
 #### Expected Tests for P11
 
@@ -538,13 +538,13 @@ The initial candidates were evaluated rather than assumed and are now the Accept
 - [x] Batch processing performs no fitting, calibration, thresholding, labeling, SHAP, scenario exploration, raw-project-data access, artifact generation, or model/background modification.
 - [x] App/headless coverage verifies progressive batch disclosure, template and result downloads, valid/invalid summaries, bounded preview, limits, reset/replacement, controlled failures, D-019 wording, and disclaimer visibility.
 - [x] The simultaneous accepted maximum batch of 2 MiB/1,000 valid rows passes the D-028 latency/memory limits, and the complete local suite passes.
-- [ ] Mandatory public valid-plus-mixed workflow verification succeeds after deployment.
+- [x] Mandatory public valid-plus-mixed workflow verification succeeded after deployment on 2026-07-16, including summary, preview, validation details, blank invalid probability, and safe result download.
 
-#### Implemented Local P11 Deliverables
+#### P11 Deliverables
 
 - `src/batch.py` with pure in-memory parsing, validation, scoring, template, field-guide, and export contracts.
 - `tests/test_batch.py` plus controlled app/headless and reference-regression additions.
-- `docs/p11-batch/report.md` with accepted D-026 through D-028 evidence, exact schemas, limits, performance/privacy evidence, tests, artifact hashes, limitations, and explicit pending public-verification boundary.
+- `docs/p11-batch/report.md` with accepted D-026 through D-028 evidence, exact schemas, limits, performance/privacy evidence, tests, artifact hashes, limitations, and public-verification closure evidence.
 - Controlled `app/streamlit_app.py` changes only after D-028, with parsing/export kept outside the UI module.
 - No new or regenerated model, calibrator, SHAP background, dataset, persisted upload, or row-level project-data artifact.
 
@@ -560,12 +560,12 @@ The initial candidates were evaluated rather than assumed and are now the Accept
 
 #### Definition of Done for P11
 
-- [ ] US-0603, US-0612, and US-0613 satisfy their acceptance criteria.
+- [x] US-0603, US-0612, and US-0613 satisfy their acceptance criteria.
 - [x] D-026, D-027, and D-028 are Accepted from ordered evidence before their dependent implementation steps.
 - [x] Template, schema, validation, partial-success, scoring, export, resource, privacy, failure, and UI contracts are explicit and reproducible.
 - [x] Every valid batch probability is faithful to the unchanged P8 serving helper, while invalid rows can never receive a probability.
 - [x] No uploaded profile or output is written or externally logged, and the public wording remains probability-only, educational, and non-diagnostic.
 - [x] P9 explanations, P10 scenarios, reference displays, medical disclaimer, and both reviewed artifact hashes remain unchanged.
 - [x] Focused, full-suite, headless, performance, and local visual checks pass.
-- [ ] The deployed valid and mixed-validity workflows pass mandatory public verification, including downloads.
-- [ ] P11 moves from Ready to Done only after the reviewed implementation is committed, pushed, deployed, and publicly verified; P12-P13 remain Future.
+- [x] The deployed valid and mixed-validity workflows passed mandatory public verification, including downloads, on 2026-07-16.
+- [x] P11 moved from Ready to Done after implementation commit `246d5ff` was pushed, deployed, and publicly verified on 2026-07-16; P12-P13 remain Future.

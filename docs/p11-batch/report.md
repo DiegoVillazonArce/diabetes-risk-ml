@@ -4,14 +4,15 @@
 
 **Planning baseline:** `ba82106 docs: refine P11 batch prediction planning`
 
-**Local status:** implementation and local verification complete; review and external closure pending
-**Phase status:** P11 remains **Ready**, not Done
+**Implementation commit:** `246d5ff feat: implement P11 batch prediction workflow`
+**Closure date:** 2026-07-16
+**Phase status:** P11 **Done**
 
 ## 1. Scope and outcome
 
-P11 now has a local, pure in-memory CSV workflow that generates its own template and field guide, rejects ambiguous files, reports all row-value problems, scores only valid rows through the unchanged P8 probability contract, previews a bounded result, and returns deterministic safe CSV bytes. P9 SHAP and P10 scenarios remain available only for the individual workflow.
+P11 provides a pure in-memory CSV workflow that generates its own template and field guide, rejects ambiguous files, reports all row-value problems, scores only valid rows through the unchanged P8 probability contract, previews a bounded result, and returns deterministic safe CSV bytes. P9 SHAP and P10 scenarios remain available only for the individual workflow.
 
-This report does not claim a deployment or public smoke test. The reviewed local changes are unstaged and the current public application still contains P8-P10 only. US-0603 and US-0612 are Done; US-0613 remains In Progress until review, commit, push, deployment, and public valid-plus-mixed verification.
+US-0603, US-0612, and US-0613 are Done. Implementation commit `246d5ff` was pushed and deployed through the existing Streamlit Community Cloud application. On 2026-07-16, mandatory public verification passed with a small valid template-derived CSV and a mixed-validity CSV, including summary, bounded preview, validation details, blank probability for the invalid row, and safe deterministic result download.
 
 ## 2. Ordered decision evidence
 
@@ -327,14 +328,12 @@ Get-FileHash models\shap_background_v1.json -Algorithm SHA256
 
 For manual local workflow review, select `Batch CSV prediction`, download the template, process it unchanged, then duplicate a row and make one `BMI` cell invalid to observe partial success and the blank invalid probability. Do not use project data for this check.
 
-## 14. External closure boundary
+## 14. External closure evidence
 
-The following are intentionally not complete in this local implementation task:
+The reviewed implementation was committed as `246d5ff`, pushed, and deployed through the existing Streamlit Community Cloud application. Mandatory public verification completed on 2026-07-16:
 
-1. manual code review and authorization to stage/commit;
-2. commit and push;
-3. Streamlit Community Cloud deployment/reboot;
-4. mandatory public smoke with one small valid template-derived file;
-5. mandatory public smoke with one mixed-validity file, including safe download inspection.
+1. a small valid template-derived CSV processed successfully and produced the expected valid summary, bounded preview, probabilities, and downloadable result;
+2. a mixed-validity template-derived CSV preserved both rows, scored only the valid row, left the invalid probability blank, displayed the validation details, and produced the safe downloadable result;
+3. the D-019 probability-only wording, medical disclaimer, and individual-only P9/P10 separation remained visible and unchanged.
 
-Until all five occur, US-0613 remains In Progress, P11 remains Ready, and P12-P13 remain Future. This work performed no `git add`, stage, commit, push, deployment, public smoke test, artifact generation, or history modification.
+These checks completed US-0613 and moved P11 from Ready to Done. P12-P13 remain Future. No model artifact or SHAP background was regenerated for deployment or closure.
