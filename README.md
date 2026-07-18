@@ -1,12 +1,12 @@
 # diabetes-risk-ml
 
-Machine Learning app to estimate self-reported diabetes/prediabetes risk using BRFSS 2015 data, with model comparison, probability calibration, SHAP explainability, planned post-MVP extensions, and Streamlit deployment.
+Machine Learning app to estimate self-reported diabetes/prediabetes risk using BRFSS 2015 data, with model comparison, probability calibration, SHAP explainability, responsible offline model auditing, post-MVP extensions, and Streamlit deployment.
 
 > This is an academic portfolio project. It is not a medical device and must not be used as diagnosis or medical advice.
 
 ## Current Status
 
-Phases P0-P11 are complete, including public deployment, probability-quality work, SHAP explainability, the constrained model scenario explorer, and the privacy-safe batch prediction workflow. The frozen D-016 `HistGradientBoostingClassifier` remains the selected model; D-018 accepted `calibration_method = none`, so the schema-version-2 artifact serves the model's positive-class probability without a post-hoc calibrator; and D-019 retains a probability-only product with no decision threshold or high/low-risk label. P9 explains that exact probability without changing it, P10 compares one approved hypothetical input using model-sensitivity wording only, and P11 scores bounded CSV batches through the same probability contract. D-026, D-027, and D-028 are Accepted, and US-0603, US-0612, and US-0613 are Done. Implementation commit `246d5ff` was pushed and the deployed Streamlit workflow passed mandatory public verification with valid and mixed-validity template-derived CSV files, including the validation summary and safe result download, on 2026-07-16. P12 has now been refined through rolling-wave planning and is Ready for a reproducible offline fairness audit; the audit is not yet implemented, no fairness conclusion has been reached, and P13 remains Future.
+Phases P0-P11 are complete, including public deployment, probability-quality work, SHAP explainability, the constrained model scenario explorer, and the privacy-safe batch prediction workflow. The frozen D-016 `HistGradientBoostingClassifier` remains the selected model; D-018 accepted `calibration_method = none`, so the schema-version-2 artifact serves the model's positive-class probability without a post-hoc calibrator; and D-019 retains a probability-only product with no decision threshold or high/low-risk label. P9 explains that exact probability without changing it, P10 compares one approved hypothetical input using model-sensitivity wording only, and P11 scores bounded CSV batches through the same probability contract. P12 implementation and aggregate evidence are complete locally under D-029 through D-031, but still await human review and a user-created commit; P12 therefore remains Ready rather than Done, US-0604 and US-0614 are Done, and US-0615 is in Review. The audit is descriptive and does not certify fairness. D-031 keeps it report-first, so the public Streamlit application remains functionally unchanged and P12 requires no deployment or public smoke test. P13 remains Future.
 
 ## Run It Locally
 
@@ -112,11 +112,19 @@ python -c "from src.artifacts import load_artifact; print(load_artifact()['metad
 
 The app is deployed on Streamlit Community Cloud at [https://brfss-diabetes-risk-estimator.streamlit.app/](https://brfss-diabetes-risk-estimator.streamlit.app/). It uses branch `main`, entry point `app/streamlit_app.py`, Python 3.12, the pinned `requirements.txt`, and the D-013 version-controlled artifact. P9 was introduced by commit `25c4ed4`, P10 by `fb50ed9`, and P11 batch prediction by `246d5ff`. Public P11 verification on 2026-07-16 confirmed the deployed workflow with a small valid template-derived CSV and a mixed-validity CSV, including summary, preview, blank invalid probability, validation details, and safe result download. Streamlit does not train or calibrate at runtime, download a model, read the raw project CSV, derive the SHAP background, run global explanation analysis, optimize scenarios, persist uploaded profiles or results, or externally log user content.
 
+## P12 Fairness Audit
+
+The local P12 evidence audits the unchanged P8 probability contract on all 50,736 rows of the frozen P3 test split. It covers the dataset's two documented `Sex` codes, four predeclared `Age` bands, all eight ordinal `Income` codes, and the eight `Sex x Age` intersections. All 22 subgroup cells passed the predeclared floor of 500 rows, 100 positives, and 100 negatives; every eligible result is included with 5,000 seed-42 percentile-bootstrap resamples and directional `group - whole cohort` gaps.
+
+The whole test cohort has 13.93% observed prevalence, 13.95% mean served probability, Brier score 0.0974, log loss 0.3144, ROC-AUC 0.8270, and PR-AUC 0.4231. Subgroup estimates differ, sometimes materially, but those differences do not establish causes, discrimination, clinical validity, or a universal fairness conclusion. BRFSS 2015 is historical and self-reported; the target can reflect diagnosis access and reporting; prevalence affects precision, PR-AUC, and error rates; the processed data has only binary `Sex`, ordinal `Age`/`Income`, and no race/ethnicity field. Group averages also cannot determine whether an individual prediction is fair.
+
+The complete formulas, support evidence, uncertainty intervals, aggregate tables, plots, limitations, hashes, and reproduction command are in the [P12 technical report](docs/p12-fairness/report.md). These local files and their Accepted decision updates are not yet versioned: they are intended to be reviewed and committed together by the user. P12 made no mitigation, retraining, recalibration, threshold, artifact, or Streamlit change.
+
 ## Project Structure
 
 ```
 src/               # Reusable data, modeling, artifact, explanation, scenario,
-                   # and pure in-memory batch modules
+                   # batch, and offline fairness-audit modules
 .streamlit/        # Server transport configuration (2 MiB upload ceiling)
 notebooks/         # EDA and analysis notebooks
 app/               # Streamlit application code

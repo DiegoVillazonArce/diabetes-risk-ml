@@ -1,0 +1,51 @@
+{
+  "artifacts": {
+    "model_sha256": "957c14ff5a490bbc60822121a889f92ee2a6a20f797eef741a710d887ecc9216",
+    "shap_background_sha256": "73d1ff21e3c98ee79fa7d72758517047f13e5f454d7ff95edb1ee93812cca120"
+  },
+  "bootstrap": {
+    "batch_size": 128,
+    "confidence": 0.95,
+    "interval": "percentile",
+    "method": "ordinary nonparametric whole-split row bootstrap with replacement",
+    "n_resamples": 5000,
+    "random_seed": 42,
+    "rng_order": "numpy Generator.integers in resample-major row order"
+  },
+  "determinism": {
+    "algorithm_and_order_frozen": true,
+    "fixed_seed": 42,
+    "point_estimates_independent_of_seed": true,
+    "repeatability_covered_by_focused_tests": true
+  },
+  "environment": {
+    "joblib": "1.5.1",
+    "machine": "AMD64",
+    "matplotlib": "3.10.3",
+    "numpy": "2.2.6",
+    "pandas": "2.3.1",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 141 Stepping 1, GenuineIntel",
+    "python": "3.12.7",
+    "scikit_learn": "1.7.1"
+  },
+  "measurement": {
+    "all_requested_resamples_recorded": true,
+    "incremental_python_current_bytes": 184910,
+    "incremental_python_peak_bytes": 351723506,
+    "incremental_python_peak_mib": 335.42967414855957,
+    "interval_rows": 855,
+    "passes": true,
+    "result_sha256": "1c8ba8a119360f6f58e40c3d82d931ea01e64db4fb19de0e95e0389e09711091",
+    "warm_runtime_seconds": 60.47168500000407
+  },
+  "project_operational_guardrails": {
+    "incremental_python_memory_mib_max": 512.0,
+    "statement": "Project operational limits, not statistical standards",
+    "warm_runtime_seconds_max": 600.0
+  },
+  "purpose": "D-030 computational feasibility only; no calibration subgroup result is published or interpreted",
+  "schema_version": 1,
+  "source_rows": 25368,
+  "source_split": "calibration"
+}

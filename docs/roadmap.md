@@ -60,7 +60,7 @@ Advanced post-MVP features include calibration depth, SHAP polish, model scenari
 | P12 | Fairness Audit | Audit the frozen P8 probability contract across predeclared sex, age, income, and supported intersectional cohorts with uncertainty-aware probability, ranking, calibration, and frozen-threshold metrics; communicate limitations without changing the model or claiming fairness. | No | Ready |
 | P13 | Product Polish and Portfolio Packaging | Improve UX, architecture page, demo assets, and final CV narrative. | No | Future |
 
-P11 is complete as of 2026-07-16. D-026 through D-028 are Accepted, US-0603, US-0612, and US-0613 are Done, implementation commit `246d5ff` was pushed and deployed, and the public valid-plus-mixed CSV workflow passed mandatory verification including the safe result download. P12 was refined to Ready on 2026-07-16 with US-0604, US-0614, and US-0615 Ready and D-029 through D-031 Pending; P13 remains Future.
+P11 is complete as of 2026-07-16. D-026 through D-028 are Accepted, US-0603, US-0612, and US-0613 are Done, implementation commit `246d5ff` was pushed and deployed, and the public valid-plus-mixed CSV workflow passed mandatory verification including the safe result download. P12 implementation and aggregate evidence were completed locally on 2026-07-17 after the ordered acceptance of D-029, D-030, and D-031. US-0604 and US-0614 are Done; US-0615 is in Review pending human review and a user-created commit. P12 remains Ready rather than Done because none of its current working-tree evidence is versioned yet. D-031 is report-first, so Streamlit and the public deployment remain functionally unchanged. P13 remains Future.
 
 ## Quality Tracks
 

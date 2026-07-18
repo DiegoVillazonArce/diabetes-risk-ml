@@ -1,0 +1,209 @@
+{
+  "artifacts": {
+    "model": {
+      "calibration_method": "none",
+      "model_class": "HistGradientBoostingClassifier",
+      "path": "models/diabetes_risk_model.joblib",
+      "schema_version": 2,
+      "sha256": "957c14ff5a490bbc60822121a889f92ee2a6a20f797eef741a710d887ecc9216"
+    },
+    "shap_background": {
+      "path": "models/shap_background_v1.json",
+      "sha256": "73d1ff21e3c98ee79fa7d72758517047f13e5f454d7ff95edb1ee93812cca120"
+    }
+  },
+  "bootstrap": {
+    "batch_size": 128,
+    "confidence": 0.95,
+    "interval": "percentile",
+    "method": "ordinary nonparametric whole-test-split row bootstrap with replacement",
+    "n_resamples": 5000,
+    "random_seed": 42,
+    "valid_resample_policy": "metric-specific finite resamples; all official eligible metrics require all 5,000"
+  },
+  "cohorts": {
+    "age_bands": [
+      {
+        "codes": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "key": "18_49",
+        "label": "18-49"
+      },
+      {
+        "codes": [
+          7,
+          8,
+          9
+        ],
+        "key": "50_64",
+        "label": "50-64"
+      },
+      {
+        "codes": [
+          10,
+          11
+        ],
+        "key": "65_74",
+        "label": "65-74"
+      },
+      {
+        "codes": [
+          12,
+          13
+        ],
+        "key": "75_plus",
+        "label": "75+"
+      }
+    ],
+    "axis_order": [
+      "whole",
+      "sex",
+      "age",
+      "income",
+      "sex_x_age"
+    ],
+    "income_codes": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "intersection": "sex_x_age",
+    "support_rule": {
+      "minimum_negatives": 100,
+      "minimum_positives": 100,
+      "minimum_rows": 500
+    }
+  },
+  "data": {
+    "calibration_rows": 25368,
+    "dataset_rows": 253680,
+    "feature_columns": [
+      "HighBP",
+      "HighChol",
+      "CholCheck",
+      "BMI",
+      "Smoker",
+      "Stroke",
+      "HeartDiseaseorAttack",
+      "PhysActivity",
+      "Fruits",
+      "Veggies",
+      "HvyAlcoholConsump",
+      "AnyHealthcare",
+      "NoDocbcCost",
+      "GenHlth",
+      "MentHlth",
+      "PhysHlth",
+      "DiffWalk",
+      "Sex",
+      "Age",
+      "Education",
+      "Income"
+    ],
+    "official_audit_split": "test",
+    "prepared_by": "src.data.prepare_data",
+    "source": "BRFSS 2015 processed binary dataset",
+    "target": "Diabetes_binary",
+    "test_rows": 50736,
+    "train_rows": 177576
+  },
+  "decisions": {
+    "D-029": "Accepted",
+    "D-030": "Accepted",
+    "D-031": "Accepted"
+  },
+  "metrics": {
+    "gap_direction": "group_minus_whole_cohort",
+    "probability": [
+      "prevalence",
+      "mean_probability",
+      "brier_score",
+      "log_loss",
+      "roc_auc",
+      "pr_auc",
+      "calibration_gap"
+    ],
+    "reliability_bin_edges": [
+      0.0,
+      0.1,
+      0.2,
+      0.30000000000000004,
+      0.4,
+      0.5,
+      0.6000000000000001,
+      0.7000000000000001,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "reliability_last_bin_includes_one": true,
+    "threshold_counts_without_intervals": [
+      "false_positive_count",
+      "false_negative_count"
+    ],
+    "threshold_normalized": [
+      "recall",
+      "precision",
+      "false_positive_rate"
+    ]
+  },
+  "package_versions": {
+    "joblib": "1.5.1",
+    "matplotlib": "3.10.3",
+    "numpy": "2.2.6",
+    "pandas": "2.3.1",
+    "python": "3.12.7",
+    "scikit_learn": "1.7.1"
+  },
+  "phase": "P12 Fairness Audit",
+  "publication": {
+    "aggregate_only": true,
+    "deployment_required": false,
+    "fairness_certification": false,
+    "mitigation_performed": false,
+    "report_first": true,
+    "streamlit_changed": false
+  },
+  "reference_profiles": [
+    {
+      "display": "0.3%",
+      "name": "low_risk_young_healthy",
+      "probability": 0.0030013847190188967
+    },
+    {
+      "display": "60.0%",
+      "name": "high_risk_cardiac_smoker",
+      "probability": 0.6000009431177805
+    },
+    {
+      "display": "70.0%",
+      "name": "high_risk_poor_health",
+      "probability": 0.699987950051215
+    },
+    {
+      "display": "79.9%",
+      "name": "high_risk_severe_obesity_cardiac",
+      "probability": 0.799000716697458
+    }
+  ],
+  "reproduction_command": ".\\.venv\\Scripts\\python.exe -m src.fairness --official-audit",
+  "run_date": "2026-07-17",
+  "schema_version": 1,
+  "threshold_scenarios": {
+    "default_half": 0.5,
+    "max_f1": 0.25,
+    "recall_floor_050": 0.29,
+    "recall_floor_075": 0.15
+  }
+}
