@@ -701,14 +701,14 @@ All Definition of Done conditions were satisfied on 2026-07-16.
 
 **Date:** 2026-07-17
 
-**Status:** In Progress
+**Status:** Completed
 
 **Goal:** Audit the unchanged P8 positive-class probability contract across predeclared demographic and socioeconomic cohorts with reproducible uncertainty-aware evidence, then communicate differences and dataset limitations without retraining, changing product behavior, or claiming that one metric proves fairness.
 
 ### Execution Evidence
 
 - P11 is Done and the deployed individual/batch application continues serving the frozen schema-version-2 artifact under D-016, D-018 `none`, and D-019 probability-only behavior.
-- The P3 calibration split contains 25,368 rows and was used only for P12 support planning and the computational benchmark. `docs/p12-fairness/calibration_support.csv` was generated first via `prepare_data()` and cohort grouping: all 22 candidate subgroup cells passed, with at least 1,011 rows and 190 positives. No calibration subgroup-performance result was published or interpreted. D-029 was then accepted operationally in the working tree. The CSV and acceptance are still unstaged and will become versioned together only if the user creates the review commit.
+- The P3 calibration split contains 25,368 rows and was used only for P12 support planning and the computational benchmark. `docs/p12-fairness/calibration_support.csv` was generated first via `prepare_data()` and cohort grouping: all 22 candidate subgroup cells passed, with at least 1,011 rows and 190 positives. No calibration subgroup-performance result was published or interpreted. D-029 was then accepted operationally in the working tree, implementation commit `1f600e8` versioned the CSV, acceptance, and complete evidence package together, and the package subsequently passed human closure review.
 - The official audit runs on the test split, which holds 50,736 rows (20% of the 253,680-row dataset, exactly twice calibration's 25,368). Feasibility argued on the smaller calibration split is therefore a conservative signal, but the accepted support floor is still re-checked mechanically on each test cohort at audit time.
 - Raw BRFSS age codes have sparse positive counts in the youngest cells, so D-029 froze the four semantic age bands before official results; no group was merged, renamed, hidden, or removed afterward.
 - The artifact-bound calibration-only benchmark completed 5,000 seed-42 bootstrap resamples in 60.4717 warm seconds with 335.430 MiB incremental Python peak memory, passing the project-internal 600-second and 512-MiB limits. D-030 was accepted with the exact resampling, interval, metric, common-bin, gap, unavailable-state, evidence-schema, and artifact-hash contract; the limits are operational guardrails, not statistical standards.
@@ -720,14 +720,14 @@ All Definition of Done conditions were satisfied on 2026-07-16.
 
 - **US-0604 -- predeclared subgroup audit (P1, Done):** the frozen cohort/support contract and complete aggregate audit evidence exist for every eligible `Sex`, `Age`, `Income`, and `Sex x Age` group.
 - **US-0614 -- deterministic metrics and uncertainty engine (P1, Done):** the pure engine, synthetic/regression tests, intervals, gaps, reliability data, and D-019 descriptive metrics are complete.
-- **US-0615 -- responsible publication (P1, Review):** the report, aggregate CSVs, accessible plots, and README summary are complete locally; human review and publication through a user-created commit remain outstanding.
+- **US-0615 -- responsible publication (P1, Done):** the report, aggregate CSVs, accessible plots, README summary, and responsible interpretation passed human review on 2026-07-17.
 
 ### Ordered Increments
 
 1. **Cohort, metric, and publication contracts:** completed in the mandated order from semantics, calibration-only support, synthetic metric evidence, benchmark evidence, and communication review before official test scoring.
 2. **Pure audit engine and synthetic tests:** completed in `src/fairness.py` and `tests/test_fairness.py` with deterministic cohort assignment, metrics, common-bin reliability, support behavior, bootstrap intervals, and D-019 scenario analysis.
 3. **Official audit and evidence package:** completed on the unchanged test split after all decisions were frozen; only aggregate CSVs, plots, configuration, benchmark evidence, and the technical report were published locally.
-4. **Communication, regression, and closure:** the README and planning documents are updated locally. Verification is recorded below; human review and a user-created commit remain before P12 closure. D-031 makes UI, deployment, and public-smoke checks not applicable.
+4. **Communication, regression, and closure: completed.** The README and planning documents are updated, verification is recorded below, and human review approved the implementation, complete aggregate evidence, and interpretation. D-031 makes UI, deployment, and public-smoke checks not applicable.
 
 ### Accepted Decisions
 
@@ -735,7 +735,7 @@ All Definition of Done conditions were satisfied on 2026-07-16.
 - **D-030 -- metric and uncertainty contract (Accepted):** support/prevalence, mean estimate, Brier, log loss, ROC-AUC, PR-AUC, signed calibration gap, common-bin reliability, all four frozen D-019 scenario metrics, and 5,000 whole-split seed-42 percentile-bootstrap resamples with `group - whole cohort` gaps. Intervals cover normalized metrics, not descriptive FP/FN counts.
 - **D-031 -- publication and response contract (Accepted):** technical report plus README, mandatory publication of every predeclared eligible result, no individual Streamlit fairness judgment, no P12 deployment, and mitigation only as later work.
 
-All three decisions were accepted from pre-test evidence in the required order. No candidate was relaxed, regrouped, or suppressed after official results were observed. Because Git actions are prohibited for this execution, the decision updates and their evidence remain jointly unstaged and are not yet versioned.
+All three decisions were accepted from pre-test evidence in the required order. No candidate was relaxed, regrouped, or suppressed after official results were observed. During automated implementation, the no-Git-action constraint kept the decision updates and evidence jointly unstaged; implementation commit `1f600e8` then versioned that complete package before human closure review.
 
 ### Guardrails
 
@@ -766,9 +766,9 @@ All three decisions were accepted from pre-test evidence in the required order. 
 
 ### Definition of Done
 
-The implementation, aggregate evidence, interpretation, and applicable verification gates are complete locally. D-029 through D-031 are Accepted; US-0604 and US-0614 are Done; US-0615 remains in Review. P12 remains Ready rather than Done until human review and a user-created commit version the evidence and decision updates together. P13 remains Future.
+The implementation, aggregate evidence, interpretation, and applicable verification gates passed human review on 2026-07-17. D-029 through D-031 are Accepted; US-0604, US-0614, and US-0615 are Done; and P12 moved from Ready to Done. D-031 makes Streamlit execution, deployment, restart, and public smoke testing not applicable. P13 remains Future.
 
 ### Follow-Up
 
-- Refine P13 through a separate rolling-wave planning step only after P12 evidence and closure are complete.
+- Refine P13 through a separate rolling-wave planning step; P12 evidence and closure are complete.
 - Treat any fairness mitigation, additional dataset/identity coverage, CI, `skops`, or product-facing audit visualization as separately scoped work rather than expanding P12 during implementation.
