@@ -647,3 +647,91 @@ P12 audits the already frozen P8 probability contract; it does not reopen model 
 - [x] The model, artifact schema, calibration method, D-019 policy, P9/P10/P11 behavior, both official artifacts, and four reference displays remain unchanged.
 - [x] Focused and full tests, dependency/compile/diff checks, deterministic regeneration, privacy checks, and every applicable gate pass; D-031 makes UI/deployment verification not applicable.
 - [x] P12 moved from Ready to Done after implementation commit `1f600e8` versioned the complete audit package and human review completed evidence closure. P13 remains Future.
+
+## Epic E9: Product Polish and Portfolio Packaging
+
+P13 is a presentation and delivery-quality phase over the frozen, publicly verified product. It does not reopen data preparation, model selection, calibration, thresholds, SHAP mathematics, scenario semantics, batch contracts, or fairness analysis. Rolling-wave refinement completed on 2026-07-17: the four stories below are Ready, while D-032 through D-035 remain Pending until the evidence required by each decision exists. No P13 feature, CI workflow, demo asset package, or serialization change has been implemented yet.
+
+| ID | User Story | Priority | Status | Acceptance Criteria |
+|---|---|---:|---|---|
+| US-0901 | As a non-technical user, I want a polished and navigable product experience so that I can find the prediction workflows, supporting explanations, and project context without confusion. | P1 | Ready | Before navigation changes, D-032 is resolved from desktop/mobile and headless state evidence. The accepted UI keeps individual prediction as the obvious default, preserves the separate batch workflow and progressive P9/P10 sections, provides concise project/architecture context at an accessible level, and improves hierarchy, labels, wrapping, responsive layout, and non-color-only cues without weakening the medical disclaimer. Artifact failures, failed resubmission, navigation changes, upload replacement, and resets cannot display stale results. No analytics, persistence, account, diagnosis, recommendation, or individual fairness judgment is introduced. |
+| US-0902 | As a technical reviewer, I want an accurate architecture explanation so that I can understand how data, offline analysis, validated artifacts, application modules, and deployment boundaries fit together. | P1 | Ready | A versioned architecture page and diagram trace manual data acquisition, deterministic splits, offline training/calibration/explainability/fairness evidence, the schema-version-2 model and safe SHAP-background artifacts, Streamlit serving, individual/scenario/batch paths, tests, and deployment. Every node and claim maps to real repository code or an Accepted decision; offline and runtime boundaries, trusted-artifact assumptions, privacy limits, and non-goals are explicit. Streamlit presents only a short plain-language overview and link, while GitHub carries the detailed technical explanation. |
+| US-0903 | As a portfolio reviewer, I want concise, evidence-backed demo and project materials so that I can assess the work quickly without reading every implementation document first. | P1 | Ready | D-033 is resolved before screenshots or headline narrative are finalized. README provides a clear project pitch, live-app entry point, architecture/result/limitation summary, and links to deeper evidence. The portfolio package contains an approved desktop/mobile screenshot set or an evidenced equivalent, useful text alternatives, and short/medium/technical CV or interview narratives. Assets use only the four public synthetic profiles or generated safe batch examples, contain no real BRFSS/user row, and make no causal, clinical, production-scale, discrimination, or certified-fairness claim unsupported by versioned evidence. |
+| US-0904 | As a maintainer and reviewer, I want automated clean-clone verification and a closed serialization assessment so that the final portfolio exposes its quality controls and remaining trust boundary honestly. | P1 | Ready | D-034 is resolved before a CI workflow is added, and D-035 is resolved before final packaging claims artifact hardening. The accepted least-privilege workflow installs the pinned Python 3.12 environment without private data or credentials, runs the accepted dependency/compile/test checks, and passes remotely before any status badge is shown. The complete raw-data suite still passes locally. D-035 records either a justified final retention of the current controlled `joblib` contract or a separately planned migration; P13 itself does not regenerate or replace either official artifact. Final local, headless, visual, link, hash, and public Streamlit checks pass. |
+
+### Candidate Tasks for P13
+
+Planning evidence is concrete: P12 is Done; the app currently exposes individual and batch workflows through one Streamlit entry point; the README has reproducible run/deployment/audit material but no dedicated architecture or recruiter-oriented overview; there is no `.github/` CI workflow; D-010 explicitly left a `skops` evaluation for final packaging; and the current regression baseline is 448 passing tests with exact model/background hashes and reference displays of 0.3%, 60.0%, 70.0%, and 79.9%. These facts justify refinement but do not pre-accept a navigation, asset, CI, or serialization outcome.
+
+#### Increment 1 -- UX, Architecture, Publication, and Quality Contracts (approximately 1 day)
+
+- [ ] Audit the current deployed/local app on representative desktop and narrow/mobile viewports. Record navigation depth, initial comprehension, label wrapping, content density, keyboard-visible controls where supported, disclaimer visibility, state transitions, and failure/fallback behavior without changing code.
+- [ ] Inventory the real offline/runtime architecture from `src/`, `app/`, tests, artifacts, deployment configuration, and Accepted decisions. Identify exactly which details belong in a short Streamlit overview versus the technical GitHub architecture page.
+- [ ] Resolve D-032 from the UX/state spike before changing Streamlit navigation or layout. Keep individual prediction as the default and predeclare the state/fallback behavior of every accepted view transition.
+- [ ] Resolve D-033 from a written asset and claims inventory before capturing screenshots or drafting final headline/CV copy. Freeze approved synthetic inputs, asset types, accessibility treatment, and evidence links.
+- [ ] Resolve D-034 from a clean-clone CI spike before creating `.github/workflows/`. Freeze triggers, permissions, Python/install/test commands, expected raw-data skips, cache behavior, timeout, and badge gate.
+- [ ] Resolve D-035 from a `joblib` versus `skops` compatibility, threat-model, maintenance, deployment, and hash-cascade comparison. Do not create or migrate an artifact during the evaluation.
+
+#### Increment 2 -- Product UX and Architecture Communication (approximately 1-2 days)
+
+- [ ] Implement only the D-032-selected navigation and presentation route. Preserve the current individual/batch separation, prediction-first default, hash-bound state, resets, safe fallbacks, and all P8-P11 wording/contracts.
+- [ ] Add concise non-technical project and architecture context to Streamlit with progressive disclosure and a clear route back to prediction. Do not load raw data, global evidence, or offline analysis at app runtime.
+- [ ] Create a detailed versioned architecture page and diagram covering data provenance, offline pipeline, artifacts, serving paths, privacy boundaries, deployment, tests, and limitations. Link every important component to its real source or decision.
+- [ ] Verify responsive layout, complete labels, readable wrapping, heading order, non-color-only meaning, disclaimers, downloads, explanation chart, scenario comparison, and error states on desktop and narrow viewports.
+
+#### Increment 3 -- README, Demo Assets, and Portfolio Narrative (approximately 1-2 days)
+
+- [ ] Restructure the top of README for fast review: concise problem/solution statement, educational boundary, live demo, key capabilities, architecture link, validated results, responsible limitations, and reproduction path. Preserve the detailed sections and source links already present.
+- [ ] Generate the D-033-approved screenshot/demo set only from public synthetic reference profiles and generated safe batch examples. Store optimized assets under `docs/p13-portfolio/` with stable names and textual alternatives; do not commit real or user-submitted rows.
+- [ ] Add a portfolio narrative with a one-sentence summary, evidence-backed CV bullets, a short recruiter explanation, and a technical interview version. Distinguish built functionality, measured results, limitations, and future work.
+- [ ] Check every numeric, performance, fairness, privacy, deployment, and reproducibility claim against versioned reports or executable tests. Remove unsupported superlatives and never describe the model as diagnostic, clinically validated, unbiased, secure for untrusted artifacts, or production-scale.
+
+#### Increment 4 -- CI, Regression, Deployment, and Final Closure (approximately 1-2 days)
+
+- [ ] Implement only the D-034-accepted least-privilege CI workflow. It must work from a clean clone without the raw CSV or credentials, use the pinned Python 3.12 dependency contract, run the accepted checks, avoid training/evidence/artifact writes, and prove a real remote green run before adding a badge.
+- [ ] Record D-035's accepted final serialization outcome. If `joblib` is retained, document the trusted-source/hash/validator/environment boundary; if migration is recommended, create a separate future hardening item without changing P13 artifacts.
+- [ ] Run focused app/navigation/portfolio/CI tests, the clean-clone no-data command, the complete local raw-data suite, `pip check`, compile checks, link/asset validation, `git diff --check`, both official SHA-256 checks, and the four exact reference-profile regressions.
+- [ ] Review the final UI in a real browser on desktop and narrow viewports, push and redeploy any Streamlit changes, then pass mandatory public smoke checks for the healthy individual prediction/explanation/scenario path, valid-plus-mixed batch path, navigation/about path, disclaimer, and downloads.
+- [ ] Update README, roadmap, backlog, decisions, iteration log, and this plan only after evidence exists. Move P13 from Ready to Done only after human review, the implementation commit, a green remote CI run, and applicable public verification.
+
+#### Expected P13 Tests
+
+- [ ] Navigation preserves a clear prediction-first default and cannot retain an old individual or batch result after failed scoring, artifact-hash change, reset, upload replacement, or an incompatible view transition.
+- [ ] The architecture/about route performs no training, calibration, evidence regeneration, raw-data access, remote data fetch, user-data write, analytics, or external logging.
+- [ ] P8-P12 contracts remain exact: artifact schema/method/scenarios, P9 explanation fidelity, P10 whitelist/comparison semantics, P11 CSV contract, P12 report-first boundary, both official hashes, and the four reference probabilities/displays.
+- [ ] Architecture links, README links, asset paths, captions/text alternatives, and live-app links resolve; diagrams and claims match real modules and Accepted decisions.
+- [ ] A source/asset privacy guard permits only approved synthetic profiles and generated safe batch examples in P13 demo material and rejects raw/test/user rows, targets, row-level audit outputs, or identifying free text.
+- [ ] The CI workflow uses pinned Python 3.12 commands, least-privilege permissions, no secrets/private data, no artifact generation, and the accepted no-data test behavior; a clean local clone-equivalent command matches the remote result.
+- [ ] Desktop and narrow-viewport review confirms no clipped controls, illegible wrapping, hidden disclaimer, color-only meaning, broken chart/download, or navigation dead end.
+- [ ] The deployed app passes the D-032/D-033 public healthy-path smoke contract after the final P13 commit.
+
+#### P13 Deliverables
+
+- Controlled `app/streamlit_app.py` and app-test changes selected by D-032.
+- `docs/architecture.md` with an accurate technical diagram and offline/runtime/privacy boundaries.
+- `docs/p13-portfolio/` containing only approved optimized demo assets and any asset manifest/evidence required by D-033.
+- `docs/portfolio-summary.md` with short, CV, recruiter, and technical-interview narratives grounded in versioned evidence.
+- A D-034-approved `.github/workflows/` CI workflow and badge only after its first successful remote run.
+- D-035 comparison evidence and the final retained-or-deferred serialization rationale, with no P13 artifact migration.
+- README and planning-document updates, focused tests, visual evidence, and public closure record.
+
+#### P13 Guardrails
+
+- [ ] Do not retrain, reweight, recalibrate, regenerate or replace artifacts, change the P8 probability contract, introduce thresholds/categories, or alter the four reference outputs.
+- [ ] Do not expand SHAP mathematics/background, scenario inputs, batch schemas/limits, or P12 cohorts/interpretation. P13 presents existing verified behavior; it does not reopen it.
+- [ ] Do not publish real BRFSS rows, user uploads, per-row probabilities/targets, split indices, or individual fairness claims in screenshots, diagrams, examples, logs, CI artifacts, or portfolio text.
+- [ ] Do not add authentication, accounts, persistence, analytics, external user-input logging, remote model/data downloads, or general data storage.
+- [ ] Do not claim diagnosis, medical advice, causal effects, clinical validation, universal fairness, discrimination findings, production-scale reliability, or safe loading of untrusted artifacts.
+- [ ] Do not migrate to `skops`, add a second official artifact, or weaken current validation during P13. A recommended migration requires a separate planned phase.
+- [ ] Do not make CI depend on Kaggle credentials, the ignored raw dataset, deployment secrets, or mutable external evidence; do not display a CI badge before a real green run.
+- [ ] Keep future mitigation, additional demographic data, dependency/lockfile migration, authentication, persistence, analytics, and artifact-format migration outside the P13 critical path.
+
+#### Definition of Done for P13
+
+- [ ] US-0901 through US-0904 are Done and D-032 through D-035 are Accepted before their dependent implementation or publication steps.
+- [ ] The final app is clearer on desktop and narrow viewports, preserves every validated serving/privacy contract, and provides accessible non-technical project context without overwhelming the prediction path.
+- [ ] The technical architecture page is accurate, linked, reproducible, and explicit about offline/runtime, artifact-trust, privacy, deployment, and limitation boundaries.
+- [ ] README, demo assets, and portfolio/CV narratives are complete, accessible, synthetic-only, and trace every material claim to versioned evidence.
+- [ ] Clean-clone CI passes remotely without private data or credentials, the full local raw-data suite passes, and dependency/compile/link/asset/diff checks are clean.
+- [ ] Both official artifact hashes and the four exact reference probabilities/displays remain unchanged; D-035 is closed without a P13 artifact migration.
+- [ ] Human review, implementation commit, redeployment, and mandatory public individual/batch/navigation smoke verification pass before P13 moves from Ready to Done.

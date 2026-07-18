@@ -457,6 +457,37 @@ Interpretation must state that BRFSS 2015 is historical self-reported survey dat
 
 P12 produces no mitigation, reweighting, retraining, calibration, per-group model, group-specific threshold, new artifact, SHAP-based fairness claim, or product decision. Any such response requires a separately planned phase after the complete audit is published. P13 product polish, CI, `skops`, authentication, persistence, and analytics remain outside P12.
 
+## Product Polish and Portfolio Packaging Plan
+
+P13 presents and protects the completed P0-P12 product; it does not create a new modeling experiment. Its implementation must preserve the frozen schema-version-2 positive-class probability contract, all explanation/scenario/batch semantics, the P12 report-first boundary, official artifacts, and reference outputs while making the system easier to understand for non-technical users, technical reviewers, and portfolio reviewers.
+
+The rolling-wave execution order is:
+
+1. Record the P12-closure baseline: current public workflows, 448-test regression result, both official SHA-256 values, exact four-profile probabilities/displays, README structure, absence of CI, and D-010's deferred `skops` evaluation.
+2. Audit the app on desktop and narrow viewports and exercise navigation/state/failure behavior headlessly. Resolve D-032 before changing information architecture, layout, or view state.
+3. Inventory the real code/data/artifact/deployment architecture and write the proposed technical versus accessible communication split. Resolve D-033 before capturing demo assets or publishing final headline/CV claims.
+4. Run a clean-clone, no-raw-data CI spike with Python 3.12 and the pinned requirements. Resolve D-034 before creating the definitive workflow or showing a status badge.
+5. Compare the current trusted-source/hash/validator/environment `joblib` boundary with a possible `skops` route, including compatibility, package, schema, artifact, SHAP-background, deployment, and maintenance consequences. Resolve D-035 without generating or replacing an artifact; migration, if recommended, becomes separate future work.
+6. Implement only the D-032-selected UX route. Keep individual prediction primary, batch separate, P9/P10 progressive, disclaimers visible, state hash-bound/transient, and failure/reset behavior unchanged.
+7. Publish a concise Streamlit project/architecture overview and a detailed GitHub architecture page. The diagram must distinguish manual/raw-data acquisition, offline preparation/training/calibration/explainability/fairness, versioned trusted artifacts, runtime individual/scenario/batch paths, tests, deployment, and privacy/non-goal boundaries.
+8. Produce only D-033-approved synthetic screenshots/examples and evidence-backed portfolio narratives. Every metric or capability claim must trace to a report, test, Accepted decision, commit, or public verification record.
+9. Implement the D-034 workflow with least privilege and no private data, credentials, training, evidence regeneration, artifact write, or external user content. Require a real remote pass before publishing a badge; retain the complete raw-data suite as a local closure gate.
+10. Run focused, clean-clone, complete, dependency, compile, link/asset, privacy, responsive visual, artifact-hash, and four-profile checks. After human review, commit and deploy Streamlit changes and pass the accepted public individual/batch/navigation smoke contract before closing P13.
+
+### P13 Communication Contract
+
+Streamlit should answer, in everyday language, what the estimator does, what it does not do, how user input reaches a probability, why explanations/scenarios are model-behavior views rather than medical causes, and where technical evidence lives. It must not present the population-level P12 audit as an individual fairness judgment. GitHub should carry the detailed module/data/artifact/deployment diagram, reproduction boundaries, evaluation evidence, limitations, privacy assumptions, and Accepted decisions.
+
+The README and portfolio package should support three review depths: a short recruiter scan, a concise engineering/ML summary, and links to full reproducible evidence. Screenshots and examples use only public synthetic reference profiles or generated safe batch inputs. CV/interview wording must distinguish measured facts from limitations and future work; the project is educational, not diagnostic, clinically validated, universally fair, production-scale, or safe for loading untrusted artifacts.
+
+### P13 Quality and Artifact Boundary
+
+D-034 should prefer the smallest useful CI contract that reproduces a clean clone without the ignored BRFSS CSV. It must use the pinned Python 3.12 environment, least-privilege permissions, deterministic commands, explicit expected raw-data skips, and no Kaggle/deployment secret. CI protects the serving and regression baseline; it does not replace the complete local full-data closure run.
+
+D-035 closes the evaluation promised by D-010 but cannot authorize an artifact migration inside P13. The currently deployed `joblib` bundle is accepted only from this controlled repository and only under strict schema/object/metadata/hash/environment validation. If `skops` offers enough benefit to justify changing that chain, the work requires a later phase with its own schema, compatibility, regeneration, SHAP-binding, deployment, and rollback plan.
+
+P13 adds no retraining, reweighting, calibration, threshold, new model, new artifact, SHAP background, scenario control, batch schema, fairness mitigation, user storage, analytics, authentication, remote model/data fetch, or medical decision behavior.
+
 ## Testing Plan
 
 The MVP should include focused pytest coverage for high-risk project behavior:
