@@ -773,11 +773,11 @@ The implementation, aggregate evidence, interpretation, and applicable verificat
 - Refine P13 through a separate rolling-wave planning step; P12 evidence and closure are complete.
 - Treat any fairness mitigation, additional dataset/identity coverage, CI, `skops`, or product-facing audit visualization as separately scoped work rather than expanding P12 during implementation.
 
-## Next Iteration Planning: P13 Product Polish and Portfolio Packaging
+## Iteration 13: P13 Product Polish and Portfolio Packaging
 
-**Date:** 2026-07-17
+**Date:** 2026-07-17 (planned); 2026-07-20 (local implementation)
 
-**Status:** Ready
+**Status:** In Progress (local implementation complete; external closure steps pending)
 
 **Goal:** Turn the completed and publicly deployed ML product into a clear, accessible, technically auditable portfolio package by polishing navigation and presentation, documenting the real offline-to-serving architecture, publishing privacy-safe demo/CV evidence, and adding a bounded clean-clone CI quality signal without changing any validated model or product contract.
 
@@ -787,7 +787,7 @@ The implementation, aggregate evidence, interpretation, and applicable verificat
 - The current Streamlit entry point already contains individual prediction, P9 local explanation, P10 scenario comparison, and the separate P11 batch workflow. It is functionally verified but has no final information-architecture decision or dedicated project/architecture view.
 - README has reproducible setup, deployment, project structure, dataset, and P12 audit material, but no dedicated architecture page, approved demo-asset package, or tiered portfolio/CV narrative.
 - The repository has 448 locally passing tests and exact artifact/reference regressions but no `.github/` CI workflow or remote status badge.
-- D-010 explicitly deferred a `skops` evaluation until final packaging. The current `joblib` artifact is repository-controlled, hash-bound, strictly validated, deployed, and coupled to the SHAP background; evaluation must not imply migration.
+- D-010 explicitly deferred a `skops` evaluation until final packaging. The current `joblib` artifact is trusted through repository provenance/review, its computed hash binds state and the SHAP background without acting as an authenticity allowlist, and its serving contract is validated after deserialization; evaluation must not imply migration.
 - The four public synthetic reference displays remain 0.3%, 60.0%, 70.0%, and 79.9%. P13 may use those profiles and generated safe batch examples, never real dataset or user rows.
 
 ### Ready Stories
@@ -833,3 +833,17 @@ P13 moves from Ready to Done only after D-032 through D-035 are Accepted from th
 
 - After P13 closure, perform a final roadmap/README consistency review and treat the repository as the completed portfolio baseline.
 - Record any newly desired product or hardening work as separate future backlog items rather than expanding P13 after implementation evidence is observed.
+
+### Execution (2026-07-20)
+
+Ran the evidence-before-implementation order end to end.
+
+**Increment 1 -- audits and decisions.** Audited the running app on desktop and narrow (375 px) viewports through the accessibility tree, and ran a headless `AppTest` state/timing spike (cold render 4.7 s; navigation switch 0.065-0.151 s; explanation/scenario hidden before submit; hash-bound state preserved across navigation). Inventoried the offline/runtime architecture from `src/`, `app/`, tests, artifacts, and Accepted decisions. Ran a `git archive HEAD` clean-clone CI spike in a fresh python.org 3.12.1 virtualenv (pinned install, `pip check` clean, `compileall` OK, `pytest` 420 passed / 28 skipped / 0 failed). Compared `joblib` vs `skops` from the official skops persistence docs. Accepted D-032 (three-section navigation with a static About & architecture overview), D-033 (publication contract), D-034 (clean-clone CI contract), and D-035 (retain `joblib`) before any implementation, with evidence sections in `docs/decisions.md`.
+
+**Increment 2 -- product UX and architecture.** Extended `app/streamlit_app.py` to a three-section navigation (`Individual prediction` default, `Batch CSV prediction`, `About & architecture`) reusing the existing hash-bound state model; added a static `render_about` overview and orientation caption; added three headless About tests to `tests/test_app.py`. Wrote `docs/architecture.md` with a Mermaid offline/runtime diagram, both official hashes, the trust boundary, privacy limits, tests, deployment, and non-goals.
+
+**Increment 3 -- README, assets, and narrative.** Restructured the README top into a scannable overview. Captured five synthetic-only screenshots (landing, individual result + explanation, scenario comparison, valid-plus-mixed batch, About on mobile) from the final local app through controlled Chromium sessions, visually inspected each, and recorded a manifest (`docs/p13-portfolio/assets_manifest.json`) with SHA-256, dimensions, viewport, alt text, and `contains_real_rows: false`. The About asset was recaptured after final link/session-privacy wording changes as five overlapping 390 x 812 segments and inspected after stitching. Added `docs/p13-portfolio/report.md` and the tiered `docs/portfolio-summary.md`.
+
+**Increment 4 -- CI, tests, and verification.** Added the least-privilege `.github/workflows/ci.yml` (D-034) and `tests/test_portfolio.py` (structure, links, manifest/hashes, privacy, claims discipline, CI contract, no premature badge). Verification: full local suite **469 passed** (baseline 448 + 3 About + 18 portfolio); clean-clone no-data run **441 passed + 28 skipped**; `pip check` clean; `compileall` clean (cache outside the repo); `git diff --check` clean; both official hashes unchanged (`957c14ff...9216`, `73d1ff21...cca120`); the four reference profiles render 0.3% / 60.0% / 70.0% / 79.9% exactly. No Streamlit process or in-repo cache was left running.
+
+**Pending external steps (still open).** Implementation commit and push; a green remote GitHub Actions run and the CI badge; redeployment of the Streamlit app; and the public individual/batch/navigation smoke verification. P13 stays Ready at the roadmap level and this iteration stays In Progress until those complete. No commit hash, Actions URL, or remote result is asserted here.

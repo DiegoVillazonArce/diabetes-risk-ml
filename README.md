@@ -4,9 +4,43 @@ Machine Learning app to estimate self-reported diabetes/prediabetes risk using B
 
 > This is an academic portfolio project. It is not a medical device and must not be used as diagnosis or medical advice.
 
+## Overview
+
+**Problem.** Estimate the self-reported risk of diabetes/prediabetes from 21 BRFSS 2015 health-survey indicators, and present that estimate honestly — with explanations, uncertainty, and clear limits — rather than as a diagnosis.
+
+**Live demo.** [brfss-diabetes-risk-estimator.streamlit.app](https://brfss-diabetes-risk-estimator.streamlit.app/) (the deployed app serves the P0–P12 product; the P13 polish in this branch is implemented locally and not yet redeployed — see [Current Status](#current-status)).
+
+**Educational / medical boundary.** Educational only. The output is a probability from a model trained on self-reported survey data — not a diagnosis, screening result, or medical advice (D-004). No decision threshold or risk label is applied (D-019).
+
+**Verified capabilities.**
+
+- Individual prediction over all 21 features through a strictly validated model artifact.
+- SHAP local explanations from a privacy-safe aggregate background (P9).
+- A one-field, whitelisted model-behavior scenario explorer (P10).
+- A privacy-safe in-memory batch CSV workflow, ≤ 2 MiB / ≤ 1,000 rows (P11).
+- An offline, report-first subgroup fairness audit (P12).
+
+**Key results** (each traces to versioned evidence):
+
+| Result | Value |
+|---|---|
+| Selected model (D-016) | `HistGradientBoostingClassifier` |
+| Test PR-AUC / ROC-AUC | ≈ 0.423 / ≈ 0.827 |
+| Calibration outcome (D-018) | `none` (no post-hoc method qualified) |
+| Reference profile displays | 0.3%, 60.0%, 70.0%, 79.9% |
+| Test suite | 469 passed locally; 441 passed + 28 CSV-gated skips in the final clean-clone validation |
+
+**Architecture.** See [docs/architecture.md](docs/architecture.md) for the offline-to-serving diagram, trusted-artifact boundary, privacy limits, tests, and non-goals.
+
+**Portfolio / demo assets.** Synthetic-only screenshots and a manifest are in [docs/p13-portfolio/](docs/p13-portfolio/); tiered CV/recruiter/interview narratives are in [docs/portfolio-summary.md](docs/portfolio-summary.md).
+
+**Reproduce.** Python 3.12 and pinned `requirements.txt`; see [Run It Locally](#run-it-locally).
+
+**Deep documentation.** [Roadmap](docs/roadmap.md) · [Backlog](docs/backlog.md) · [Decisions](docs/decisions.md) · [Iteration Log](docs/iteration-log.md) · [ML Analysis Plan](docs/ml-analysis-plan.md).
+
 ## Current Status
 
-Phases P0-P12 are complete, including public deployment, probability-quality work, SHAP explainability, the constrained model scenario explorer, the privacy-safe batch prediction workflow, and the responsible offline fairness audit. The frozen D-016 `HistGradientBoostingClassifier` remains the selected model; D-018 accepted `calibration_method = none`, so the schema-version-2 artifact serves the model's positive-class probability without a post-hoc calibrator; and D-019 retains a probability-only product with no decision threshold or high/low-risk label. P9 explains that exact probability without changing it, P10 compares one approved hypothetical input using model-sensitivity wording only, and P11 scores bounded CSV batches through the same probability contract. P12 implementation commit `1f600e8` versioned the complete audit package; US-0604, US-0614, and US-0615 are Done under Accepted decisions D-029 through D-031 after human review of the implementation, aggregate evidence, interpretation, and applicable verification gates. The audit is descriptive and does not certify fairness. D-031 keeps it report-first, so the public Streamlit application remains functionally unchanged and P12 required no deployment or public smoke test. P13 is now refined through rolling-wave planning and Ready for implementation: US-0901 through US-0904 and pending decisions D-032 through D-035 define the product UX, architecture documentation, privacy-safe portfolio assets, CI, and final serialization evaluation. None of that P13 work is implemented or deployed yet.
+Phases P0-P12 are complete, including public deployment, probability-quality work, SHAP explainability, the constrained model scenario explorer, the privacy-safe batch prediction workflow, and the responsible offline fairness audit. The frozen D-016 `HistGradientBoostingClassifier` remains the selected model; D-018 accepted `calibration_method = none`, so the schema-version-2 artifact serves the model's positive-class probability without a post-hoc calibrator; and D-019 retains a probability-only product with no decision threshold or high/low-risk label. P9 explains that exact probability without changing it, P10 compares one approved hypothetical input using model-sensitivity wording only, and P11 scores bounded CSV batches through the same probability contract. P12 implementation commit `1f600e8` versioned the complete audit package; US-0604, US-0614, and US-0615 are Done under Accepted decisions D-029 through D-031 after human review of the implementation, aggregate evidence, interpretation, and applicable verification gates. The audit is descriptive and does not certify fairness. D-031 keeps it report-first, so the public Streamlit application remains functionally unchanged and P12 required no deployment or public smoke test. P13 (Product Polish and Portfolio Packaging) is **implemented locally and ready for review, but not yet committed, deployed, or closed.** Decisions D-032 through D-035 are Accepted from audit/spike evidence: the Streamlit app gains a three-section navigation with a static About & architecture overview (D-032); the technical [architecture](docs/architecture.md), synthetic-only [portfolio assets](docs/p13-portfolio/), and tiered [narratives](docs/portfolio-summary.md) are added (D-033); a least-privilege clean-clone CI workflow is added under `.github/workflows/` (D-034, validated locally — no remote run or badge yet); and the controlled `joblib` artifact is retained with a documented trust boundary, deferring any `skops` migration (D-035). Both official artifacts and the four reference displays are unchanged. The remaining external steps — the implementation commit and push, a green remote CI run and its badge, redeployment, and the public smoke verification — are intentionally still pending.
 
 ## Run It Locally
 
@@ -74,7 +108,7 @@ With the raw CSV in place the whole suite runs, including the real-data integrat
 python -m streamlit run app/streamlit_app.py
 ```
 
-The app provides an explicit `Individual prediction` / `Batch CSV prediction` selector. The individual workflow retains the 21-feature form, the P8 probability, P9 local explanation, and P10 one-field hypothetical explorer unchanged. The P11 batch workflow provides a code-generated CSV template and field guide, accepts a UTF-8 comma CSV of at most 2 MiB and 1,000 rows, scores only valid rows in one vectorized call, previews at most 25 rows, and downloads one deterministic result CSV. Uploaded bytes and batch results remain in active-session memory, are bound to both artifact and upload SHA-256, and are cleared after replacement, failure, reset, or artifact change; project code does not write or externally log them or put user content in a shared cache. Batch produces no SHAP, scenarios, thresholds, categories, diagnosis, recommendations, or population conclusions. The current D-018 outcome remains `none`, the D-019 probability-only wording and medical disclaimer remain visible, and Streamlit still never reads the project training CSV, trains, calibrates, or generates artifacts.
+The app provides an explicit three-section selector: `Individual prediction`, `Batch CSV prediction`, and `About & architecture`. The individual workflow retains the 21-feature form, the P8 probability, P9 local explanation, and P10 one-field hypothetical explorer unchanged. The P11 batch workflow provides a code-generated CSV template and field guide, accepts a UTF-8 comma CSV of at most 2 MiB and 1,000 rows, scores only valid rows in one vectorized call, previews at most 25 rows, and downloads one deterministic result CSV. The static About section gives a plain-language project overview and links to the versioned GitHub architecture, phase evidence, decision log, and README. Uploaded bytes and batch results remain in active-session memory, are bound to both artifact and upload SHA-256, and are cleared after replacement, failure, reset, or artifact change; project code does not write or externally log them or put user content in a shared cache. Batch produces no SHAP, scenarios, thresholds, categories, diagnosis, recommendations, or population conclusions. The current D-018 outcome remains `none`, the D-019 probability-only wording and medical disclaimer remain visible, and Streamlit still never reads the project training CSV, trains, calibrates, or generates artifacts.
 
 To reproduce the complete P9 technical evidence offline (the local CSV is required), run:
 

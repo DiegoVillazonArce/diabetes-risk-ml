@@ -1,0 +1,84 @@
+{
+  "phase": "P13",
+  "generated": "2026-07-20",
+  "source": "Local Streamlit app (app/streamlit_app.py) served on localhost, captured through controlled Chromium browser sessions.",
+  "privacy": "All assets use only synthetic inputs (public reference profiles / artifacts.example_input()). Synthetic demonstration probabilities are intentionally visible; no real BRFSS row, user upload, probability associated with a real/user row, target, or split index appears in any asset.",
+  "decision": "D-033",
+  "assets": [
+    {
+      "name": "01-landing-desktop.png",
+      "purpose": "Prediction-first landing: title, orientation caption, the three-section navigation (Individual selected), and the individual 21-field input form.",
+      "viewport": "desktop (1280 CSS px wide)",
+      "synthetic_source": "none (empty default form; no data entered)",
+      "alt_text": "Streamlit app landing page showing the Diabetes Risk Estimator title, a three-option navigation radio (Individual prediction selected, Batch CSV prediction, About & architecture), and the two-column yes/no health indicator form.",
+      "date": "2026-07-20",
+      "dimensions": {
+        "width": 1472,
+        "height": 3922
+      },
+      "bytes": 345119,
+      "sha256": "aafa215986739c9aed7d5c26eba9d105e3599862e93c92841f663a62893d8302",
+      "contains_real_rows": false
+    },
+    {
+      "name": "02-individual-result-desktop.png",
+      "purpose": "Individual estimate with the SHAP local explanation and the scenario explorer at rest, for a synthetic higher-risk case.",
+      "viewport": "desktop (1280 CSS px wide)",
+      "synthetic_source": "synthetic higher-risk profile entered by the capture script (HighBP, HighChol, Smoker, coronary heart disease, difficulty walking; BMI 42, age 75); no real dataset or user row.",
+      "alt_text": "Individual prediction result showing an estimated probability of 38.8%, a SHAP contribution bar chart with an Increased/Decreased legend, a list of the largest contributions, and the model scenario explorer, above the medical disclaimer.",
+      "date": "2026-07-20",
+      "dimensions": {
+        "width": 1472,
+        "height": 7346
+      },
+      "bytes": 757241,
+      "sha256": "73998349ad0d620873fb61dcd5da18fc90aa2e53c2cbeef32838057e08bd2167",
+      "contains_real_rows": false
+    },
+    {
+      "name": "03-scenario-comparison-desktop.png",
+      "purpose": "One-field model-behavior scenario comparison showing a non-zero difference for the same synthetic case.",
+      "viewport": "desktop (1280 CSS px wide)",
+      "synthetic_source": "same synthetic higher-risk profile; scenario input 'Physical activity' changed from No to Yes.",
+      "alt_text": "Model scenario explorer comparing the original estimate (38.8%) with a hypothetical scenario (39.7%), a difference of +0.90 percentage points, with a non-causal notice that the comparison describes model behavior only.",
+      "date": "2026-07-20",
+      "dimensions": {
+        "width": 1472,
+        "height": 7514
+      },
+      "bytes": 775924,
+      "sha256": "bb1da691cb3232315b195ab6c712a3c5a3b496758653f7e356cb1f9dec13eef6",
+      "contains_real_rows": false
+    },
+    {
+      "name": "04-batch-workflow-desktop.png",
+      "purpose": "In-memory batch workflow with a synthetic mixed-validity CSV: 8 rows, 6 valid and 2 invalid, plus the privacy notice and probabilities-only warning.",
+      "viewport": "desktop (1280 CSS px wide)",
+      "synthetic_source": "CSV of eight artifacts.example_input() rows with two BMI cells deliberately set to 'invalid'; no real dataset or user row.",
+      "alt_text": "Batch CSV prediction workflow showing a summary of 8 total rows, 6 valid and 2 invalid, a result preview table with two rows marked invalid, download buttons, and a warning that the output contains probabilities only.",
+      "date": "2026-07-20",
+      "dimensions": {
+        "width": 1472,
+        "height": 4122
+      },
+      "bytes": 418168,
+      "sha256": "05c110720acdc863b250f5fbd73967523cf5aa33a927d8729db0954dbfecea14",
+      "contains_real_rows": false
+    },
+    {
+      "name": "05-about-mobile.png",
+      "purpose": "About & architecture section on a narrow viewport: what the estimator does and does not do, how input becomes a probability, model-behavior and population-level framing, and links to versioned evidence.",
+      "viewport": "mobile (390 x 812 CSS px; five overlapping viewport segments stitched after capture)",
+      "synthetic_source": "none (static informational content; no data)",
+      "alt_text": "About & architecture section on a mobile-width layout, listing what the estimator does and does not do, how an input becomes a probability, how to read the explanation and scenario, the population-level fairness audit note, and where the technical evidence lives.",
+      "date": "2026-07-20",
+      "dimensions": {
+        "width": 390,
+        "height": 3163
+      },
+      "bytes": 880502,
+      "sha256": "c5883ba3ae18b9df0f4953d2fa86f603f60e554de66de812179cb8405d0695a2",
+      "contains_real_rows": false
+    }
+  ]
+}

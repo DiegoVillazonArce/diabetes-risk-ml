@@ -365,8 +365,23 @@ def test_artifact_loading_is_local_only():
     app_source = APP_PATH.read_text(encoding="utf-8")
     artifacts_source = inspect.getsource(artifacts)
     for source in (app_source, artifacts_source):
-        for forbidden in ("requests", "urllib", "http://", "https://", "st.secrets", "boto3"):
+        for forbidden in (
+            "requests.",
+            "urllib.",
+            "urlopen(",
+            "http://",
+            "st.secrets",
+            "boto3",
+        ):
             assert forbidden not in source
+    # P13 adds one static GitHub base URL for evidence links. It is rendered as
+    # Markdown only and is not an artifact/data fetch path.
+    assert app_source.count("https://") == 1
+    assert (
+        'REPOSITORY_URL = "https://github.com/DiegoVillazonArce/diabetes-risk-ml"'
+        in app_source
+    )
+    assert "https://" not in artifacts_source
 
 
 # ---------------------------------------------------------------------------
@@ -769,13 +784,18 @@ def test_workflow_navigation_separates_individual_and_batch(tmp_artifact, monkey
 
     st.cache_resource.clear()
     app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    # D-032: three fixed-order sections, individual prediction first/default.
     assert app.radio[0].options == [
         "Individual prediction",
         "Batch CSV prediction",
+        "About & architecture",
     ]
     assert app.radio[0].value == "Individual prediction"
     assert not any(
         subheader.value == "Batch CSV prediction" for subheader in app.subheader
+    )
+    assert not any(
+        subheader.value == "About this project" for subheader in app.subheader
     )
 
     app.radio[0].set_value("Batch CSV prediction").run()
@@ -790,6 +810,9 @@ def test_workflow_navigation_separates_individual_and_batch(tmp_artifact, monkey
     )
     assert not any(
         subheader.value == "Model scenario explorer" for subheader in app.subheader
+    )
+    assert not any(
+        subheader.value == "About this project" for subheader in app.subheader
     )
 
 
@@ -1048,3 +1071,95 @@ def test_batch_keeps_d019_wording_privacy_and_medical_disclaimer(
     assert "medical disclaimer" in rendered
     assert "not a diagnosis" in rendered
     assert "risk category" in rendered
+
+
+# ---------------------------------------------------------------------------
+# P13 About & architecture section (D-032): static, safe, non-scoring
+# ---------------------------------------------------------------------------
+
+
+def test_about_section_renders_static_context_and_route_back(tmp_artifact):
+    from streamlit.testing.v1 import AppTest
+
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    app.radio[0].set_value("About & architecture").run()
+
+    assert not app.exception
+    # The About section renders its overview and no prediction UI.
+    assert any(sub.value == "About this project" for sub in app.subheader)
+    assert not app.checkbox
+    assert not app.metric
+    assert not any(
+        sub.value == "How the model interprets this estimate"
+        for sub in app.subheader
+    )
+    assert not any(
+        sub.value == "Batch CSV prediction" for sub in app.subheader
+    )
+
+    rendered = " ".join(
+        element.value
+        for element in [*app.markdown, *app.text, *app.caption, *app.info, *app.warning]
+    ).lower()
+    # Communication contract: what it does / does not do, model-behavior
+    # framing, population-level (not individual) fairness framing, evidence.
+    assert "what it does" in rendered
+    assert "what it does not do" in rendered
+    assert "not a diagnosis" in rendered or "does not diagnose" in rendered
+    repository_url = "https://github.com/diegovillazonarce/diabetes-risk-ml"
+    assert f"{repository_url}/blob/main/docs/architecture.md" in rendered
+    assert f"{repository_url}/blob/main/docs/decisions.md" in rendered
+    assert f"{repository_url}#readme" in rendered
+    assert "population-level" in rendered
+    assert "does not persist inputs or results outside the active session" in rendered
+    # A clear route back to the primary prediction path.
+    assert "individual prediction" in rendered
+    # Medical disclaimer stays visible in the About section too.
+    assert any("medical disclaimer" in warning.value.lower() for warning in app.warning)
+
+
+def test_about_section_runs_no_scoring_explanation_scenario_or_batch(
+    tmp_artifact, monkeypatch
+):
+    from streamlit.testing.v1 import AppTest
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("the About section must not score, explain, or batch")
+
+    monkeypatch.setattr(artifacts, "predict_risk_probability", forbidden)
+    monkeypatch.setattr(explainability, "load_runtime_explainer", forbidden)
+    monkeypatch.setattr(explainability, "explain_local_values", forbidden)
+    monkeypatch.setattr(scenarios, "compare_scenario", forbidden)
+    monkeypatch.setattr(batch, "process_batch", forbidden)
+
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    app.radio[0].set_value("About & architecture").run()
+
+    assert not app.exception
+    assert any(sub.value == "About this project" for sub in app.subheader)
+
+
+def test_about_navigation_preserves_saved_individual_result(tmp_artifact):
+    from streamlit.testing.v1 import AppTest
+
+    st.cache_resource.clear()
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    app.button[0].set_value(True).run()
+    original_display = app.metric[0].value
+    assert original_display.endswith("%")
+
+    # Leaving to About hides the individual result but does not discard it.
+    app.radio[0].set_value("About & architecture").run()
+    assert not app.metric
+    assert any(sub.value == "About this project" for sub in app.subheader)
+
+    # Returning to Individual shows the same hash-bound result again.
+    app.radio[0].set_value("Individual prediction").run()
+    assert not app.exception
+    assert app.metric[0].value == original_display
+    assert any(
+        sub.value == "How the model interprets this estimate"
+        for sub in app.subheader
+    )

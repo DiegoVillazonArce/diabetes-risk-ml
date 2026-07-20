@@ -1,4 +1,10 @@
-"""Streamlit app: individual P9/P10 and in-memory P11 batch prediction.
+"""Streamlit app: individual P9/P10, in-memory P11 batch, and About view.
+
+A single top-level navigation radio (D-032) selects one of three fixed-order
+sections -- `Individual prediction` (default), `Batch CSV prediction`, and a
+static `About & architecture` overview. Individual prediction stays the
+default and primary path; the About section performs no scoring and loads no
+raw data or offline analysis.
 
 The app is a thin UI over the P6 serving contract in `src.artifacts`: it
 loads the local D-016 model artifact once per server process (cached; the
@@ -47,7 +53,17 @@ BATCH_RESULT_STATE_KEY = "_p11_batch_result"
 BATCH_WIDGET_GENERATION_STATE_KEY = "_p11_batch_generation"
 BATCH_WIDGET_STATE_PREFIX = "_p11_batch_widget_"
 BATCH_PREVIEW_ROWS = 25
-WORKFLOW_OPTIONS = ("Individual prediction", "Batch CSV prediction")
+REPOSITORY_URL = "https://github.com/DiegoVillazonArce/diabetes-risk-ml"
+
+# D-032 information architecture: one top-level navigation radio with three
+# fixed-order sections. Individual prediction stays first, so it remains the
+# default and primary path; batch stays separate; the About section is a
+# static overview that runs no training, calibration, global SHAP, P12 audit,
+# remote fetch, or user-data write.
+INDIVIDUAL_SECTION = "Individual prediction"
+BATCH_SECTION = "Batch CSV prediction"
+ABOUT_SECTION = "About & architecture"
+WORKFLOW_OPTIONS = (INDIVIDUAL_SECTION, BATCH_SECTION, ABOUT_SECTION)
 
 
 def medical_disclaimer(bundle: dict) -> str:
@@ -827,12 +843,114 @@ def render_batch_workflow(bundle: dict, artifact_hash: str) -> None:
     )
 
 
+def render_about(bundle: dict) -> None:
+    """Static, plain-language project/architecture overview (D-032, US-0902).
+
+    This section performs no scoring and loads no raw data, global evidence,
+    or offline analysis. It only reads already-loaded artifact metadata to
+    describe the served contract in words and points to the versioned
+    technical evidence in the repository.
+    """
+    st.subheader("About this project")
+    st.write(
+        "This is an educational portfolio project that estimates the "
+        "self-reported risk of diabetes or prediabetes from 21 health-survey "
+        "indicators, using a model trained offline on the public BRFSS 2015 "
+        "dataset. It is not a medical device."
+    )
+
+    st.markdown("**What it does**")
+    st.markdown(
+        "- Turns one person's 21 answers into a single probability estimate.\n"
+        "- Explains that estimate by showing which entered values pushed the "
+        "model's number up or down.\n"
+        "- Lets you compare the estimate with one hypothetical change to an "
+        "approved lifestyle input.\n"
+        "- Scores a small CSV batch through the exact same probability "
+        "contract, entirely in memory."
+    )
+
+    st.markdown("**What it does not do**")
+    st.markdown(
+        "- It does not diagnose, screen for, or rule out diabetes, and it is "
+        "not medical advice.\n"
+        "- It applies no decision threshold and assigns no risk category or "
+        "label -- only a probability.\n"
+        "- It does not describe medical causes: the explanation and the "
+        "scenario describe how this fitted model behaves, not what would "
+        "happen to a person's health.\n"
+        "- It does not persist inputs or results outside the active session: "
+        "there are no accounts, saved profiles, or external tracking."
+    )
+
+    st.markdown("**How an input becomes a probability**")
+    st.markdown(
+        "1. You fill in the 21 indicators (or upload a CSV of them).\n"
+        "2. The app validates every value against the project's allowed "
+        "ranges and arranges them in the exact order the model expects.\n"
+        "3. A model that was trained and frozen offline reads that row and "
+        "returns the probability of the positive class.\n"
+        "4. The app shows that probability directly -- it never trains, "
+        "re-fits, calibrates, or downloads a model while you use it."
+    )
+
+    st.markdown("**How the explanation and scenario should be read**")
+    st.markdown(
+        "The explanation and the what-if scenario are *model-behavior* views. "
+        "They show how this particular fitted model combined the numbers you "
+        "entered. A different model or reference background could distribute "
+        "the contributions differently. Neither view is a statement about "
+        "health causes, and neither is a recommendation."
+    )
+
+    st.markdown("**About the fairness audit**")
+    st.markdown(
+        "The project also includes an offline fairness audit that measures how "
+        "the model's probabilities behave across demographic and socioeconomic "
+        "groups in the test data. That audit is a *descriptive, population-level* "
+        "study with uncertainty ranges. It does not certify the model as fair, "
+        "and it cannot tell you whether any single estimate is fair. It is "
+        "published as a report and is intentionally not shown as an individual "
+        "judgment here."
+    )
+
+    method = bundle["metadata"]["calibration_method"]
+    model_class = bundle["metadata"]["model_class"]
+    st.markdown("**Where the technical evidence lives**")
+    st.markdown(
+        "The full technical detail is versioned in the project's GitHub "
+        "repository, not in this app:\n"
+        f"- [Architecture]({REPOSITORY_URL}/blob/main/docs/architecture.md) -- "
+        "the offline-to-serving architecture, the "
+        "trusted-artifact boundary, privacy limits, tests, deployment, and "
+        "non-goals, with a diagram.\n"
+        f"- [Phase evidence]({REPOSITORY_URL}/tree/main/docs) -- the P8 "
+        "calibration, P9 explainability, P10 scenario, P11 batch, and P12 "
+        "fairness reports.\n"
+        f"- [Decision log]({REPOSITORY_URL}/blob/main/docs/decisions.md) -- "
+        "the accepted decisions that govern the "
+        f"served contract (the frozen `{model_class}`, calibration method "
+        f"`{method}`, and the probability-only policy).\n"
+        f"- [Project README]({REPOSITORY_URL}#readme) -- the live demo link, "
+        "reproduction steps, and results summary."
+    )
+
+    st.info(
+        "Ready to try it? Select **Individual prediction** at the top to "
+        "estimate one case, or **Batch CSV prediction** to score a CSV."
+    )
+
+
 def main() -> None:
     st.set_page_config(page_title="Diabetes Risk Estimator", page_icon="🩺")
     st.title("Diabetes Risk Estimator")
     st.caption(
         "Educational MVP that estimates self-reported diabetes/prediabetes "
         "risk with the project's selected model (D-016). Not medical advice."
+    )
+    st.caption(
+        "Use the navigation below to estimate one case, score a CSV batch, or "
+        "read how the project works."
     )
 
     try:
@@ -859,15 +977,17 @@ def main() -> None:
             "A saved batch result was cleared because the local model artifact changed."
         )
 
-    workflow = st.radio(
-        "Prediction workflow",
+    section = st.radio(
+        "Navigation",
         options=WORKFLOW_OPTIONS,
         horizontal=True,
     )
-    if workflow == "Individual prediction":
+    if section == INDIVIDUAL_SECTION:
         render_individual_workflow(bundle, artifact_hash)
-    else:
+    elif section == BATCH_SECTION:
         render_batch_workflow(bundle, artifact_hash)
+    else:
+        render_about(bundle)
     st.warning(medical_disclaimer(bundle))
 
 
