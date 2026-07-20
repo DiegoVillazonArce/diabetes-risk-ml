@@ -359,7 +359,17 @@ def test_bootstrap_is_reproducible_and_batch_partition_independent(complete_fixt
         features, labels, probabilities, batch_size=40, **kwargs
     )
 
-    assert fairness.dataframe_csv_bytes(first) == fairness.dataframe_csv_bytes(second)
+    # BLAS implementations can differ at the final binary digit when the same
+    # matrix reduction is partitioned into differently sized batches.  The
+    # categorical contract remains exact and the numerical contract remains
+    # batch-independent to machine precision.
+    pd.testing.assert_frame_equal(
+        first,
+        second,
+        check_exact=False,
+        rtol=0.0,
+        atol=1e-15,
+    )
 
 
 def test_changing_seed_changes_intervals_not_point_estimates(complete_fixture):

@@ -28,6 +28,7 @@ ARCHITECTURE = DOCS / "architecture.md"
 PORTFOLIO_SUMMARY = DOCS / "portfolio-summary.md"
 README = PROJECT_ROOT / "README.md"
 CI_WORKFLOW = PROJECT_ROOT / ".github" / "workflows" / "ci.yml"
+GIT_ATTRIBUTES = PROJECT_ROOT / ".gitattributes"
 
 MODEL_ARTIFACT = PROJECT_ROOT / "models" / "diabetes_risk_model.joblib"
 BACKGROUND_ASSET = PROJECT_ROOT / "models" / "shap_background_v1.json"
@@ -81,6 +82,12 @@ def test_architecture_documents_both_official_hashes():
     text = read(ARCHITECTURE)
     assert sha256(MODEL_ARTIFACT) in text, "model SHA-256 missing/incorrect"
     assert sha256(BACKGROUND_ASSET) in text, "background SHA-256 missing/incorrect"
+    # The background is a hash-bound text artifact whose reviewed runtime bytes
+    # use CRLF.  Materialize those same bytes on Windows and Linux checkouts.
+    assert (
+        "/models/shap_background_v1.json text eol=crlf"
+        in read(GIT_ATTRIBUTES)
+    )
     normalized = " ".join(text.split())
     assert "not a hard-coded allowlist or authenticity check" in normalized
     assert "cannot make an untrusted pickle" in normalized
