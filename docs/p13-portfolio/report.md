@@ -109,3 +109,20 @@ analytics, or external logging; and it makes no clinical, causal, or
 fairness-certification claim. See [portfolio-summary.md](../portfolio-summary.md)
 for the tiered narratives and [architecture.md](../architecture.md) for the
 technical architecture.
+
+## Closure verification (2026-07-20)
+
+Implementation commit `7f642af` and cross-platform CI fix `08170c3` were pushed
+to `main`. The complete local suite passed 469 tests, clean-clone validation
+passed 441 tests with 28 explicit raw-data skips, and the accepted GitHub Actions
+workflow passed remotely before its README badge was published. The fix makes
+the hash-bound SHAP-background checkout bytes consistent across Windows/Linux
+and treats only final-digit BLAS variation as machine-precision equivalence; it
+changes no production behavior or artifact.
+
+The redeployed Streamlit app passed public verification of individual
+prediction, SHAP explanation, one-field scenario comparison, valid-plus-mixed
+batch validation and downloads, three-section navigation, About/evidence links,
+the medical disclaimer, and responsive presentation. Both official hashes and
+the four reference displays remained exact. D-032 through D-035 are Accepted,
+US-0901 through US-0904 are Done, and P13 closed as the final portfolio phase.

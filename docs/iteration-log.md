@@ -775,9 +775,9 @@ The implementation, aggregate evidence, interpretation, and applicable verificat
 
 ## Iteration 13: P13 Product Polish and Portfolio Packaging
 
-**Date:** 2026-07-17 (planned); 2026-07-20 (local implementation)
+**Date:** 2026-07-17 (planned); 2026-07-20 (implemented and closed)
 
-**Status:** In Progress (local implementation complete; external closure steps pending)
+**Status:** Completed
 
 **Goal:** Turn the completed and publicly deployed ML product into a clear, accessible, technically auditable portfolio package by polishing navigation and presentation, documenting the real offline-to-serving architecture, publishing privacy-safe demo/CV evidence, and adding a bounded clean-clone CI quality signal without changing any validated model or product contract.
 
@@ -790,26 +790,26 @@ The implementation, aggregate evidence, interpretation, and applicable verificat
 - D-010 explicitly deferred a `skops` evaluation until final packaging. The current `joblib` artifact is trusted through repository provenance/review, its computed hash binds state and the SHAP background without acting as an authenticity allowlist, and its serving contract is validated after deserialization; evaluation must not imply migration.
 - The four public synthetic reference displays remain 0.3%, 60.0%, 70.0%, and 79.9%. P13 may use those profiles and generated safe batch examples, never real dataset or user rows.
 
-### Ready Stories
+### Story Status
 
-- **US-0901 -- product UX and information architecture (P1, Ready):** select and implement a clearer prediction-first navigation/presentation contract from desktop/mobile and state-transition evidence.
-- **US-0902 -- accurate technical architecture (P1, Ready):** document the real offline pipeline, artifacts, serving paths, privacy boundaries, tests, deployment, and limitations at technical and accessible levels.
-- **US-0903 -- portfolio and demo package (P1, Ready):** publish synthetic-only accessible assets plus evidence-backed README, CV, recruiter, and technical-interview narratives.
-- **US-0904 -- delivery quality and serialization assessment (P1, Ready):** add accepted clean-clone CI, prove a remote green run, and close the `joblib`/`skops` evaluation without migrating artifacts in P13.
+- **US-0901 -- product UX and information architecture (P1, Done):** the clearer prediction-first navigation and accessible About view passed local, responsive, and public verification.
+- **US-0902 -- accurate technical architecture (P1, Done):** the real offline pipeline, artifacts, serving paths, privacy boundaries, tests, deployment, and limitations are documented at technical and accessible levels.
+- **US-0903 -- portfolio and demo package (P1, Done):** synthetic-only accessible assets and evidence-backed README, CV, recruiter, and technical-interview narratives are versioned.
+- **US-0904 -- delivery quality and serialization assessment (P1, Done):** clean-clone CI passed remotely, its badge is published, and the `joblib`/`skops` evaluation closed without migrating artifacts.
 
-### Planned Increments
+### Completed Increments
 
 1. **UX, architecture, publication, and quality contracts -- approximately 1 day:** audit the existing app and repository, run the navigation/state and clean-clone CI spikes, freeze approved asset/claim inputs, and resolve D-032 through D-035 before dependent implementation.
 2. **Product UX and architecture communication -- approximately 1-2 days:** implement only D-032, add concise app context plus detailed GitHub architecture, and verify responsive/accessibility/state behavior without changing prediction contracts.
 3. **README, demo assets, and portfolio narrative -- approximately 1-2 days:** produce only D-033-approved synthetic assets, improve fast reviewer comprehension, and create tiered evidence-backed CV/interview wording.
 4. **CI, regression, deployment, and final closure -- approximately 1-2 days:** implement D-034, record D-035, pass clean-clone and full local gates, review desktop/mobile, redeploy Streamlit changes, complete public individual/batch/navigation smoke tests, and close P13 after human review.
 
-### Pending Decisions
+### Accepted Decisions
 
-- **D-032 -- final information architecture and UX boundary (Pending):** navigation, prediction-first default, accessible project context, responsive behavior, and state/fallback rules.
-- **D-033 -- architecture/portfolio publication contract (Pending):** technical versus non-technical depth, approved synthetic inputs/assets, accessibility, and permitted evidence-backed claims.
-- **D-034 -- clean-clone CI contract (Pending):** triggers, permissions, Python/install/test commands, raw-data absence behavior, caches, timeout, and badge gate.
-- **D-035 -- final serialization evaluation (Pending):** retain the controlled `joblib` contract for the portfolio or plan a later `skops` migration; no P13 artifact replacement is permitted.
+- **D-032 -- final information architecture and UX boundary (Accepted):** navigation, prediction-first default, accessible project context, responsive behavior, and state/fallback rules.
+- **D-033 -- architecture/portfolio publication contract (Accepted):** technical versus non-technical depth, approved synthetic inputs/assets, accessibility, and permitted evidence-backed claims.
+- **D-034 -- clean-clone CI contract (Accepted):** triggers, permissions, Python/install/test commands, raw-data absence behavior, caches, timeout, and badge gate.
+- **D-035 -- final serialization evaluation (Accepted):** retain the controlled `joblib` contract for the portfolio and defer any `skops` migration; no P13 artifact was replaced.
 
 ### Guardrails
 
@@ -844,6 +844,10 @@ Ran the evidence-before-implementation order end to end.
 
 **Increment 3 -- README, assets, and narrative.** Restructured the README top into a scannable overview. Captured five synthetic-only screenshots (landing, individual result + explanation, scenario comparison, valid-plus-mixed batch, About on mobile) from the final local app through controlled Chromium sessions, visually inspected each, and recorded a manifest (`docs/p13-portfolio/assets_manifest.json`) with SHA-256, dimensions, viewport, alt text, and `contains_real_rows: false`. The About asset was recaptured after final link/session-privacy wording changes as five overlapping 390 x 812 segments and inspected after stitching. Added `docs/p13-portfolio/report.md` and the tiered `docs/portfolio-summary.md`.
 
-**Increment 4 -- CI, tests, and verification.** Added the least-privilege `.github/workflows/ci.yml` (D-034) and `tests/test_portfolio.py` (structure, links, manifest/hashes, privacy, claims discipline, CI contract, no premature badge). Verification: full local suite **469 passed** (baseline 448 + 3 About + 18 portfolio); clean-clone no-data run **441 passed + 28 skipped**; `pip check` clean; `compileall` clean (cache outside the repo); `git diff --check` clean; both official hashes unchanged (`957c14ff...9216`, `73d1ff21...cca120`); the four reference profiles render 0.3% / 60.0% / 70.0% / 79.9% exactly. No Streamlit process or in-repo cache was left running.
+**Increment 4 -- CI, tests, and verification.** Added the least-privilege `.github/workflows/ci.yml` (D-034) and `tests/test_portfolio.py` (structure, links, manifest/hashes, privacy, claims discipline, CI contract, and the post-green workflow badge). Verification: full local suite **469 passed** (baseline 448 + 3 About + 18 portfolio); clean-clone no-data run **441 passed + 28 skipped**; `pip check` clean; `compileall` clean (cache outside the repo); `git diff --check` clean; both official hashes unchanged (`957c14ff...9216`, `73d1ff21...cca120`); the four reference profiles render 0.3% / 60.0% / 70.0% / 79.9% exactly. No Streamlit process or in-repo cache was left running.
 
-**Pending external steps (still open).** Implementation commit and push; a green remote GitHub Actions run and the CI badge; redeployment of the Streamlit app; and the public individual/batch/navigation smoke verification. P13 stays Ready at the roadmap level and this iteration stays In Progress until those complete. No commit hash, Actions URL, or remote result is asserted here.
+### Closure Evidence (2026-07-20)
+
+Implementation commit `7f642af` and cross-platform CI fix `08170c3` were pushed to `main`. The first remote run exposed platform-specific LF/CRLF hashing of the SHAP background and final-digit BLAS variation in one batch-partition test; the follow-up fixed checkout bytes with `.gitattributes` and constrained the numerical comparison to machine precision without changing production code or either artifact. The complete local suite still passed 469 tests, the clean-clone contract remained 441 passed plus 28 explicit CSV-gated skips, and the subsequent GitHub Actions run passed remotely before the README badge was published.
+
+The Streamlit app was redeployed and passed human public verification of the healthy individual probability/explanation/scenario path, valid-plus-mixed batch validation and downloads, three-section navigation and About links, visible medical disclaimer, and responsive presentation. Both official hashes and the four reference displays remained exact. US-0901 through US-0904 are Done, D-032 through D-035 are Accepted, P13 is Done, and Iteration 13 is complete. P0-P13 now form the finished portfolio baseline; future changes require separate planning.

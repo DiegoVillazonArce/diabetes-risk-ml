@@ -225,12 +225,15 @@ def test_ci_workflow_does_no_training_secrets_or_artifact_writes():
         assert forbidden not in lowered, f"CI must not reference '{forbidden}'"
 
 
-def test_no_premature_ci_badge():
-    # Per D-034, no status badge until a real remote green run exists.
-    readme = read(README).lower()
-    for badge_marker in ("workflows/ci.yml/badge.svg", "img.shields.io",
-                        "actions/workflows/ci.yml/badge"):
-        assert badge_marker not in readme, "CI badge must not appear before a green run"
+def test_ci_badge_targets_the_accepted_workflow_after_remote_green():
+    # P13 closure supplied the remote-green evidence required by D-034.
+    readme = read(README)
+    badge = (
+        "[![CI](https://github.com/DiegoVillazonArce/diabetes-risk-ml/"
+        "actions/workflows/ci.yml/badge.svg)](https://github.com/"
+        "DiegoVillazonArce/diabetes-risk-ml/actions/workflows/ci.yml)"
+    )
+    assert readme.count(badge) == 1
 
 
 # ---------------------------------------------------------------------------
